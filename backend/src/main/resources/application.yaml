@@ -1,21 +1,13 @@
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
 spring:
   datasource:
-    # 1. Base de datos principal (GOV_CONNECT_DB)
     primary:
-      jdbc-url: jdbc:sqlserver://localhost:1433;databaseName=GOV_CONNECT_DB;encrypt=true;trustServerCertificate=true
-      username: sia_connect
-      password: SiaConnect2026!
+      jdbc-url: ${GOVCONNECT_DB_URL:jdbc:sqlserver://localhost:1433;databaseName=GOV_CONNECT_DB;encrypt=true;trustServerCertificate=true}
+      username: ${GOVCONNECT_DB_USERNAME:sa}
+      password: ${GOVCONNECT_DB_PASSWORD:}
       driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
-
-    # 2. Base de datos secundaria (ERP_DB)
-    # erp:
-      #jdbc-url: jdbc:sqlserver://localhost:1433;databaseName=ERP_DB;encrypt=true;trustServerCertificate=true
-      #username: sia_connect
-      #password: SiaConnect2026!
-      #driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
 
   jpa:
     hibernate:
