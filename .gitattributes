@@ -1,0 +1,15 @@
+# Todos los archivos de texto: LF en el repo
+* text=auto eol=lf
+
+# Excepciones: archivos que requieren CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binarios (git no intentará convertir)
+*.jar binary
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary
+*.duckdb binary
+*.zip binary
