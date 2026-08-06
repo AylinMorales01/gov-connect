@@ -65,8 +65,9 @@ build/
 frontend/.env
 
 # =============================================================================
-# Editor y sistema operativo
+# Herramientas de desarrollo
 # =============================================================================
+.claude/
 .vscode/
 *.swp
 *.swo
