@@ -1,5 +1,7 @@
 package com.govconnect;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -11,20 +13,20 @@ import java.sql.Connection;
 @SpringBootApplication
 public class GovConnectApiApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(GovConnectApiApplication.class, args);
-	}
+    private static final Logger log = LoggerFactory.getLogger(GovConnectApiApplication.class);
 
-	@Bean
-	CommandLineRunner test(DataSource dataSource) {
-		return args -> {
-			try (Connection connection = dataSource.getConnection()) {
-				System.out.println("--------------------------------");
-				System.out.println("Conectado correctamente a:");
-				System.out.println(connection.getCatalog());
-				System.out.println("--------------------------------");
-			}
-		};
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(GovConnectApiApplication.class, args);
+    }
+
+    @Bean
+    CommandLineRunner testConnection(DataSource dataSource) {
+        return args -> {
+            try (Connection connection = dataSource.getConnection()) {
+                log.info("Conexión a la base de datos establecida correctamente: {}", connection.getCatalog());
+            } catch (Exception e) {
+                log.error("No se pudo conectar a la base de datos: {}", e.getMessage());
+            }
+        };
+    }
 }
-

@@ -1,15 +1,12 @@
 package com.govconnect.analytics.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.math.BigDecimal;
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class MonthlyTrendDto {
-    private String month;
-    private BigDecimal amount;
-}
+/**
+ * DTO para la tendencia mensual de recaudos.
+ * Mapea 1:1 las columnas de la consulta en {@code TrendAnalyticsService}.
+ */
+public record MonthlyTrendDto(
+        String month,
+        BigDecimal amount
+) {}

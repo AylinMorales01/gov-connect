@@ -2,8 +2,10 @@ package com.govconnect.analytics.service;
 
 import com.govconnect.analytics.dto.MonthlyTrendDto;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -15,22 +17,31 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TrendAnalyticsService {
 
-    private final Connection duckDbConnection;
+    @Qualifier("primaryDataSource")
+    private final DataSource dataSource;
 
+    /**
+     * Obtiene la tendencia mensual de recaudos desde SQL Server.
+     * <p>
+     * La agrupación por mes usa {@code FORMAT(date, 'yyyy-MM')}
+     * nativa de T-SQL, compatible con SQL Server 2012+.
+     * </p>
+     */
     public List<MonthlyTrendDto> getMonthlyTrend() throws SQLException {
         List<MonthlyTrendDto> trend = new ArrayList<>();
 
         String sql = """
-                SELECT 
-                    strftime(collection_date, '%Y-%m') AS month, 
-                    SUM(amount) AS total 
-                FROM collections 
-                GROUP BY month 
+                SELECT
+                    FORMAT(collection_date, 'yyyy-MM') AS month,
+                    SUM(amount) AS total
+                FROM collections
+                GROUP BY FORMAT(collection_date, 'yyyy-MM')
                 ORDER BY month
                 """;
 
-        try (Statement stmt = duckDbConnection.createStatement()) {
-            ResultSet rs = stmt.executeQuery(sql);
+        try (Connection conn = dataSource.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
                 trend.add(new MonthlyTrendDto(
                         rs.getString("month"),

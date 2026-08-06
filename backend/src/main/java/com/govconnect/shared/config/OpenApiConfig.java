@@ -13,7 +13,7 @@ public class OpenApiConfig {
     public OpenAPI openAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("SIA Connect API")
+                        .title("Gov Connect API")
                         .version("1.0.0")
                         .description("Sistema Inteligente de Automatización y Analítica para Entidades Públicas")
                         .contact(new Contact()

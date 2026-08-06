@@ -18,9 +18,4 @@ public class DatabaseConfig {
         return DataSourceBuilder.create().build();
     }
 
-    /*@Bean(name = "erpDataSource")
-    @ConfigurationProperties(prefix = "spring.datasource.erp")
-    public DataSource erpDataSource() {
-        return DataSourceBuilder.create().build();
-    }*/
 }

@@ -1,90 +1,119 @@
 package com.govconnect.analytics.repository;
 
-import com.govconnect.analytics.dto.FinancialOverviewResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
+import javax.sql.DataSource;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+/**
+ * Repositorio de solo lectura para agregaciones mensuales de recaudos en SQL Server.
+ * <p>
+ * <b>Responsabilidad única:</b> extraer datos crudos. Toda lógica de
+ * negocio (cálculo de crecimiento, derivación de tendencias) reside en
+ * {@link com.govconnect.analytics.service.FinancialOverviewService}.
+ * </p>
+ */
 @Repository
 @RequiredArgsConstructor
 public class FinancialAnalyticsRepository {
 
-    private final Connection duckDbConnection;
+    @Qualifier("primaryDataSource")
+    private final DataSource dataSource;
 
-    public FinancialOverviewResponse getFinancialOverview() throws SQLException {
+    private static final String MONTHLY_CTE = """
+            WITH monthly_collections AS (
+                SELECT FORMAT(collection_date, 'yyyy-MM') AS month,
+                       SUM(amount) AS total_amount
+                FROM collections
+                GROUP BY FORMAT(collection_date, 'yyyy-MM')
+            )
+            """;
+
+    /**
+     * Agregados mensuales crudos — sin procesar, sin interpretar.
+     * El servicio es responsable de convertirlos en un
+     * {@link com.govconnect.analytics.dto.FinancialOverviewResponse}.
+     */
+    public record MonthlyAggregates(
+            String bestMonth,
+            BigDecimal bestAmount,
+            String worstMonth,
+            BigDecimal worstAmount,
+            BigDecimal average,
+            BigDecimal currentMonthAmount,
+            BigDecimal previousMonthAmount
+    ) {}
+
+    /**
+     * Extrae los datos agregados directamente desde SQL Server.
+     *
+     * @return los agregados mensuales crudos (nunca {@code null})
+     * @throws SQLException si ocurre un error en la consulta
+     */
+    public MonthlyAggregates getMonthlyAggregates() throws SQLException {
         String bestMonth = null;
         BigDecimal bestAmount = BigDecimal.ZERO;
         String worstMonth = null;
         BigDecimal worstAmount = BigDecimal.ZERO;
         BigDecimal average = BigDecimal.ZERO;
-        BigDecimal growth = BigDecimal.ZERO;
-        String trend = "ESTABLE";
+        BigDecimal currentMonthAmount = BigDecimal.ZERO;
+        BigDecimal previousMonthAmount = BigDecimal.ZERO;
 
-        // Creamos un CTE base para reutilizar la lógica de agrupación por mes
-        String baseQuery = """
-                WITH monthly_collections AS (
-                    SELECT strftime(collection_date, '%Y-%m') AS month, SUM(amount) AS total_amount
-                    FROM collections
-                    GROUP BY month
-                )
-                """;
-
-        try (Statement stmt = duckDbConnection.createStatement()) {
+        try (Connection conn = dataSource.getConnection()) {
 
             // 1. Mes con mayor recaudo
-            ResultSet rsBest = stmt.executeQuery(baseQuery + " SELECT month, total_amount FROM monthly_collections ORDER BY total_amount DESC LIMIT 1");
-            if (rsBest.next()) {
-                bestMonth = rsBest.getString("month");
-                bestAmount = rsBest.getBigDecimal("total_amount");
-            }
-
-            // 2. Mes con menor recaudo
-            ResultSet rsWorst = stmt.executeQuery(baseQuery + " SELECT month, total_amount FROM monthly_collections ORDER BY total_amount ASC LIMIT 1");
-            if (rsWorst.next()) {
-                worstMonth = rsWorst.getString("month");
-                worstAmount = rsWorst.getBigDecimal("total_amount");
-            }
-
-            // 3. Promedio mensual
-            ResultSet rsAvg = stmt.executeQuery(baseQuery + " SELECT AVG(total_amount) as avg_amount FROM monthly_collections");
-            if (rsAvg.next()) {
-                average = rsAvg.getBigDecimal("avg_amount");
-            }
-
-            // 4. Últimos dos meses para el crecimiento
-            ResultSet rsLastTwo = stmt.executeQuery(baseQuery + " SELECT month, total_amount FROM monthly_collections ORDER BY month DESC LIMIT 2");
-            BigDecimal currentMonthAmount = BigDecimal.ZERO;
-            BigDecimal previousMonthAmount = BigDecimal.ZERO;
-
-            if (rsLastTwo.next()) {
-                currentMonthAmount = rsLastTwo.getBigDecimal("total_amount");
-                if (rsLastTwo.next()) {
-                    previousMonthAmount = rsLastTwo.getBigDecimal("total_amount");
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(
+                         MONTHLY_CTE + " SELECT month, total_amount FROM monthly_collections ORDER BY total_amount DESC, month OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY")) {
+                if (rs.next()) {
+                    bestMonth = rs.getString("month");
+                    bestAmount = rs.getBigDecimal("total_amount");
                 }
             }
 
-            // 5. Calcular crecimiento y tendencia
-            if (previousMonthAmount.compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal difference = currentMonthAmount.subtract(previousMonthAmount);
-                // ((Actual - Anterior) / Anterior) * 100
-                growth = difference.divide(previousMonthAmount, 4, RoundingMode.HALF_UP).multiply(new BigDecimal("100"));
+            // 2. Mes con menor recaudo
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(
+                         MONTHLY_CTE + " SELECT month, total_amount FROM monthly_collections ORDER BY total_amount ASC, month OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY")) {
+                if (rs.next()) {
+                    worstMonth = rs.getString("month");
+                    worstAmount = rs.getBigDecimal("total_amount");
+                }
+            }
 
-                if (growth.compareTo(new BigDecimal("5")) > 0) {
-                    trend = "CRECIMIENTO";
-                } else if (growth.compareTo(new BigDecimal("-5")) < 0) {
-                    trend = "DESCENSO";
+            // 3. Promedio mensual
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(
+                         MONTHLY_CTE + " SELECT AVG(total_amount) AS avg_amount FROM monthly_collections")) {
+                if (rs.next()) {
+                    average = rs.getBigDecimal("avg_amount");
+                }
+            }
+
+            // 4. Últimos dos meses (actual y anterior)
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(
+                         MONTHLY_CTE + " SELECT month, total_amount FROM monthly_collections ORDER BY month DESC OFFSET 0 ROWS FETCH NEXT 2 ROWS ONLY")) {
+                if (rs.next()) {
+                    currentMonthAmount = rs.getBigDecimal("total_amount");
+                    if (rs.next()) {
+                        previousMonthAmount = rs.getBigDecimal("total_amount");
+                    }
                 }
             }
         }
 
-        return new FinancialOverviewResponse(
-                bestMonth, bestAmount, worstMonth, worstAmount, average, growth, trend
+        return new MonthlyAggregates(
+                bestMonth, bestAmount,
+                worstMonth, worstAmount,
+                average,
+                currentMonthAmount, previousMonthAmount
         );
     }
 }
