@@ -1,0 +1,113 @@
+# =============================================================================
+# Variables de entorno y archivos sensibles
+# =============================================================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.p12
+*.jks
+*.keystore
+*.pfx
+**/application-local.yaml
+**/application-local.yml
+**/application-dev.yaml
+**/application-dev.yml
+
+# =============================================================================
+# IntelliJ IDEA
+# =============================================================================
+.idea/
+
+# =============================================================================
+# Java / Maven / Gradle
+# =============================================================================
+**/target/
+**/.mvn/wrapper/maven-wrapper.jar
+*.class
+*.jar
+*.war
+*.ear
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Maven wrapper (el JAR no se versiona, las properties sí)
+**/.mvn/wrapper/maven-wrapper.jar
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# =============================================================================
+# Node / Frontend
+# =============================================================================
+**/node_modules/
+**/dist/
+**/dist-ssr/
+*.local
+frontend/.env
+
+# =============================================================================
+# Editor y sistema operativo
+# =============================================================================
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# =============================================================================
+# Archivos generados / ETL
+# =============================================================================
+exports/
+
+# =============================================================================
+# Bases de datos locales y archivos de datos
+# =============================================================================
+*.duckdb
+*.duckdb.wal
+*.db
+*.sqlite
+*.sqlite3
+
+# =============================================================================
+# Logs
+# =============================================================================
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# =============================================================================
+# Archivos temporales y de respaldo
+# =============================================================================
+*.tmp
+*.temp
+*.bak
+*.backup
+*~
