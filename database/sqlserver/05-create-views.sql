@@ -1,4 +1,7 @@
-CREATE VIEW vw_dashboard_summary AS
+-- ==========================================
+-- 0. Vista: Resumen Ejecutivo (vw_dashboard_summary)
+-- ==========================================
+CREATE OR ALTER VIEW vw_dashboard_summary AS
 SELECT
     (SELECT ISNULL(SUM(amount),0)
      FROM collections
@@ -19,6 +22,7 @@ SELECT
              ELSE (SUM(executed_budget)*100.0)/SUM(assigned_budget)
              END
      FROM budgets) AS budget_execution_percentage;
+GO
 
 -- ==========================================
 -- 1. Vista: Recaudo mensual (vw_monthly_collections)
