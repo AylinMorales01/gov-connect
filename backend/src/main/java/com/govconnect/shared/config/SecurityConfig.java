@@ -26,6 +26,7 @@ public class SecurityConfig {
                         // Permitimos acceso libre a las rutas del Dashboard y Swagger
                         .requestMatchers(
                                 "/api/v1/dashboard/**",
+                                "/api/v1/automation/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html",

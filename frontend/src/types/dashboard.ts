@@ -18,3 +18,13 @@ export interface ExpiringContractItem {
     endDate: string;
     remainingDays: number;
 }
+
+export interface AutomationLogItem {
+    id: number;
+    userId: number | null;
+    process: string;
+    status: string;
+    message: string;
+    executionTimeMs: number | null;
+    createdAt: string;
+}
