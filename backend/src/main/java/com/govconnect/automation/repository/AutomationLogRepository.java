@@ -4,8 +4,7 @@ import com.govconnect.automation.dto.AutomationLogRequest;
 import com.govconnect.automation.dto.AutomationLogResponse;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -23,9 +22,8 @@ import java.util.List;
  */
 @Repository
 @RequiredArgsConstructor
+@Slf4j
 public class AutomationLogRepository {
-
-    private static final Logger log = LoggerFactory.getLogger(AutomationLogRepository.class);
 
     private final EntityManager entityManager;
 

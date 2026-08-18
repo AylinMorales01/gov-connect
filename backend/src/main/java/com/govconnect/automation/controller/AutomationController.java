@@ -8,8 +8,7 @@ import com.govconnect.shared.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,10 +25,9 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/automation")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "Automation", description = "Endpoints de registro y consulta de ejecuciones de automatización")
 public class AutomationController {
-
-    private static final Logger log = LoggerFactory.getLogger(AutomationController.class);
 
     private final AutomationLogService service;
 
