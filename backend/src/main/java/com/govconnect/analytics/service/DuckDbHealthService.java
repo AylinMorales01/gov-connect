@@ -1,6 +1,7 @@
 package com.govconnect.analytics.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
@@ -13,6 +14,7 @@ import java.sql.Statement;
 @RequiredArgsConstructor
 public class DuckDbHealthService {
 
+    @Qualifier("duckDbDataSource")
     private final DataSource duckDbDataSource;
 
     public String test() throws SQLException {

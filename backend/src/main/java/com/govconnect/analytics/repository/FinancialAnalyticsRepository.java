@@ -12,26 +12,41 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 /**
- * Repositorio de solo lectura para agregaciones mensuales de recaudos en SQL Server.
+ * Repositorio de solo lectura para agregaciones mensuales de recaudos.
+ * <p>
+ * Consulta DuckDB (base analítica) poblada por el ETL desde SQL Server.
+ * </p>
  * <p>
  * <b>Responsabilidad única:</b> extraer datos crudos. Toda lógica de
  * negocio (cálculo de crecimiento, derivación de tendencias) reside en
  * {@link com.govconnect.analytics.service.FinancialOverviewService}.
+ * </p>
+ * <p>
+ * <b>Diferencias de sintaxis respecto a SQL Server:</b>
+ * <ul>
+ *   <li>{@code FORMAT(date, 'yyyy-MM')} → {@code strftime(date, '%Y-%m')}</li>
+ *   <li>{@code OFFSET … FETCH NEXT N ROWS ONLY} → {@code LIMIT N}</li>
+ * </ul>
  * </p>
  */
 @Repository
 @RequiredArgsConstructor
 public class FinancialAnalyticsRepository {
 
-    @Qualifier("primaryDataSource")
-    private final DataSource dataSource;
+    @Qualifier("duckDbDataSource")
+    private final DataSource duckDbDataSource;
 
+    /**
+     * CTE compartida para todas las subconsultas.
+     * {@code strftime} de DuckDB equivale a {@code FORMAT} de T-SQL
+     * para la agrupación por año-mes.
+     */
     private static final String MONTHLY_CTE = """
             WITH monthly_collections AS (
-                SELECT FORMAT(collection_date, 'yyyy-MM') AS month,
+                SELECT strftime(collection_date, '%Y-%m') AS month,
                        SUM(amount) AS total_amount
                 FROM collections
-                GROUP BY FORMAT(collection_date, 'yyyy-MM')
+                GROUP BY strftime(collection_date, '%Y-%m')
             )
             """;
 
@@ -51,69 +66,96 @@ public class FinancialAnalyticsRepository {
     ) {}
 
     /**
-     * Extrae los datos agregados directamente desde SQL Server.
+     * Extrae los datos agregados directamente desde DuckDB.
+     * <p>
+     * Delega en 4 subconsultas independientes dentro de una misma conexión.
+     * </p>
      *
      * @return los agregados mensuales crudos (nunca {@code null})
      * @throws SQLException si ocurre un error en la consulta
      */
     public MonthlyAggregates getMonthlyAggregates() throws SQLException {
-        String bestMonth = null;
-        BigDecimal bestAmount = BigDecimal.ZERO;
-        String worstMonth = null;
-        BigDecimal worstAmount = BigDecimal.ZERO;
-        BigDecimal average = BigDecimal.ZERO;
-        BigDecimal currentMonthAmount = BigDecimal.ZERO;
-        BigDecimal previousMonthAmount = BigDecimal.ZERO;
-
-        try (Connection conn = dataSource.getConnection()) {
-
-            // 1. Mes con mayor recaudo
-            try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery(
-                         MONTHLY_CTE + " SELECT month, total_amount FROM monthly_collections ORDER BY total_amount DESC, month OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY")) {
-                if (rs.next()) {
-                    bestMonth = rs.getString("month");
-                    bestAmount = rs.getBigDecimal("total_amount");
-                }
-            }
-
-            // 2. Mes con menor recaudo
-            try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery(
-                         MONTHLY_CTE + " SELECT month, total_amount FROM monthly_collections ORDER BY total_amount ASC, month OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY")) {
-                if (rs.next()) {
-                    worstMonth = rs.getString("month");
-                    worstAmount = rs.getBigDecimal("total_amount");
-                }
-            }
-
-            // 3. Promedio mensual
-            try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery(
-                         MONTHLY_CTE + " SELECT AVG(total_amount) AS avg_amount FROM monthly_collections")) {
-                if (rs.next()) {
-                    average = rs.getBigDecimal("avg_amount");
-                }
-            }
-
-            // 4. Últimos dos meses (actual y anterior)
-            try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery(
-                         MONTHLY_CTE + " SELECT month, total_amount FROM monthly_collections ORDER BY month DESC OFFSET 0 ROWS FETCH NEXT 2 ROWS ONLY")) {
-                if (rs.next()) {
-                    currentMonthAmount = rs.getBigDecimal("total_amount");
-                    if (rs.next()) {
-                        previousMonthAmount = rs.getBigDecimal("total_amount");
-                    }
-                }
-            }
+        try (Connection conn = duckDbDataSource.getConnection()) {
+            return new MonthlyAggregates(
+                    queryBestMonth(conn),
+                    queryBestAmount(conn),
+                    queryWorstMonth(conn),
+                    queryWorstAmount(conn),
+                    queryAverage(conn),
+                    queryCurrentMonthAmount(conn),
+                    queryPreviousMonthAmount(conn)
+            );
         }
+    }
 
-        return new MonthlyAggregates(
-                bestMonth, bestAmount,
-                worstMonth, worstAmount,
-                average,
-                currentMonthAmount, previousMonthAmount
-        );
+    // ── Subconsultas ──────────────────────────────────────
+
+    private String queryBestMonth(Connection conn) throws SQLException {
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(
+                     MONTHLY_CTE
+                     + " SELECT month FROM monthly_collections"
+                     + " ORDER BY total_amount DESC, month LIMIT 1")) {
+            return rs.next() ? rs.getString("month") : null;
+        }
+    }
+
+    private BigDecimal queryBestAmount(Connection conn) throws SQLException {
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(
+                     MONTHLY_CTE
+                     + " SELECT total_amount FROM monthly_collections"
+                     + " ORDER BY total_amount DESC, month LIMIT 1")) {
+            return rs.next() ? rs.getBigDecimal("total_amount") : BigDecimal.ZERO;
+        }
+    }
+
+    private String queryWorstMonth(Connection conn) throws SQLException {
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(
+                     MONTHLY_CTE
+                     + " SELECT month FROM monthly_collections"
+                     + " ORDER BY total_amount ASC, month LIMIT 1")) {
+            return rs.next() ? rs.getString("month") : null;
+        }
+    }
+
+    private BigDecimal queryWorstAmount(Connection conn) throws SQLException {
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(
+                     MONTHLY_CTE
+                     + " SELECT total_amount FROM monthly_collections"
+                     + " ORDER BY total_amount ASC, month LIMIT 1")) {
+            return rs.next() ? rs.getBigDecimal("total_amount") : BigDecimal.ZERO;
+        }
+    }
+
+    private BigDecimal queryAverage(Connection conn) throws SQLException {
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(
+                     MONTHLY_CTE
+                     + " SELECT AVG(total_amount) AS avg_amount FROM monthly_collections")) {
+            return rs.next() ? rs.getBigDecimal("avg_amount") : BigDecimal.ZERO;
+        }
+    }
+
+    private BigDecimal queryCurrentMonthAmount(Connection conn) throws SQLException {
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(
+                     MONTHLY_CTE
+                     + " SELECT total_amount FROM monthly_collections"
+                     + " ORDER BY month DESC LIMIT 1")) {
+            return rs.next() ? rs.getBigDecimal("total_amount") : BigDecimal.ZERO;
+        }
+    }
+
+    private BigDecimal queryPreviousMonthAmount(Connection conn) throws SQLException {
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(
+                     MONTHLY_CTE
+                     + " SELECT total_amount FROM monthly_collections"
+                     + " ORDER BY month DESC LIMIT 1 OFFSET 1")) {
+            return rs.next() ? rs.getBigDecimal("total_amount") : BigDecimal.ZERO;
+        }
     }
 }

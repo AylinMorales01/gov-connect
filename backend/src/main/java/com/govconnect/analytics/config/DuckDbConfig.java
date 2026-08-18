@@ -1,5 +1,6 @@
 package com.govconnect.analytics.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -24,16 +25,21 @@ import javax.sql.DataSource;
 public class DuckDbConfig {
 
     /**
-     * Ruta relativa al archivo DuckDB, resuelta desde el directorio de trabajo
-     * del proceso (debe ser la raíz del repositorio).
+     * Ruta al archivo DuckDB. Configurable vía la propiedad {@code duckdb.path}
+     * en {@code application.yaml} o la variable de entorno {@code DUCKDB_PATH}.
+     * <p>
+     * El valor por defecto {@code database/analytics/analytics.duckdb} es relativo
+     * al directorio de trabajo del proceso (raíz del repositorio).
+     * </p>
      */
-    private static final String DUCKDB_URL =
-            "jdbc:duckdb:database/analytics/analytics.duckdb";
+    @Value("${duckdb.path:database/analytics/analytics.duckdb}")
+    private String duckDbPath;
 
     @Bean
     public DataSource duckDbDataSource() {
+        String url = "jdbc:duckdb:" + duckDbPath;
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
-        dataSource.setUrl(DUCKDB_URL);
+        dataSource.setUrl(url);
         // DuckDB no requiere usuario ni contraseña en modo embebido
         return dataSource;
     }

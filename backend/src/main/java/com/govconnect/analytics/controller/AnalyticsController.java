@@ -10,6 +10,8 @@ import com.govconnect.analytics.service.FinancialOverviewService;
 import com.govconnect.analytics.service.TrendAnalyticsService;
 import com.govconnect.shared.constants.ApiMessages;
 import com.govconnect.shared.response.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +27,7 @@ import java.util.List;
 @RequestMapping("/api/v1/analytics")
 @RequiredArgsConstructor
 @Tag(name = "Analytics Engine", description = "Motor analítico de alto rendimiento para Gov Connect")
+@SecurityRequirement(name = "Bearer Authentication")
 public class AnalyticsController {
 
     private final DuckDbHealthService healthService;
@@ -33,6 +36,7 @@ public class AnalyticsController {
     private final FinancialOverviewService overviewService;
     private final DepartmentRankingService rankingService;
 
+    @Operation(summary = "Verificar conexión a DuckDB", description = "Prueba la conexión a la base de datos analítica DuckDB.")
     @GetMapping("/health")
     public ResponseEntity<ApiResponse<String>> health() throws SQLException {
         return ResponseEntity.ok(
@@ -40,14 +44,16 @@ public class AnalyticsController {
         );
     }
 
+    @Operation(summary = "Ejecutar ETL", description = "Ejecuta el proceso ETL completo: exporta datos de SQL Server a CSV y los importa en DuckDB.")
     @PostMapping("/etl/run")
-    public ResponseEntity<ApiResponse<String>> runEtl() throws SQLException {
+    public ResponseEntity<ApiResponse<String>> runEtl() {
         etlService.runFullEtl();
         return ResponseEntity.ok(
                 ApiResponse.success(ApiMessages.ANALYTICS_ETL_SUCCESS, null)
         );
     }
 
+    @Operation(summary = "Tendencia mensual de recaudos", description = "Devuelve la tendencia mensual de recaudos desde DuckDB.")
     @GetMapping("/monthly-trend")
     public ResponseEntity<ApiResponse<List<MonthlyTrendDto>>> getMonthlyTrend() throws SQLException {
         return ResponseEntity.ok(
@@ -58,6 +64,7 @@ public class AnalyticsController {
         );
     }
 
+    @Operation(summary = "Resumen financiero", description = "Devuelve el resumen analítico financiero desde DuckDB.")
     @GetMapping("/financial-overview")
     public ResponseEntity<ApiResponse<FinancialOverviewResponse>> getFinancialOverview() throws SQLException {
         return ResponseEntity.ok(
@@ -68,6 +75,7 @@ public class AnalyticsController {
         );
     }
 
+    @Operation(summary = "Ranking de dependencias", description = "Devuelve el ranking de dependencias por ejecución presupuestal desde DuckDB.")
     @GetMapping("/department-ranking")
     public ResponseEntity<ApiResponse<List<DepartmentRankingResponse>>> getDepartmentRanking() throws SQLException {
         return ResponseEntity.ok(

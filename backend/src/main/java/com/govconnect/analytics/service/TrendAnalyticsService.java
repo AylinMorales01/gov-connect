@@ -13,18 +13,24 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Servicio de tendencia mensual de recaudos.
+ * <p>
+ * Consulta DuckDB (base analítica) poblada por el ETL desde SQL Server.
+ * </p>
+ */
 @Service
 @RequiredArgsConstructor
 public class TrendAnalyticsService {
 
-    @Qualifier("primaryDataSource")
-    private final DataSource dataSource;
+    @Qualifier("duckDbDataSource")
+    private final DataSource duckDbDataSource;
 
     /**
-     * Obtiene la tendencia mensual de recaudos desde SQL Server.
+     * Obtiene la tendencia mensual de recaudos desde DuckDB.
      * <p>
-     * La agrupación por mes usa {@code FORMAT(date, 'yyyy-MM')}
-     * nativa de T-SQL, compatible con SQL Server 2012+.
+     * {@code strftime(date, '%Y-%m')} equivale al {@code FORMAT(date, 'yyyy-MM')}
+     * de SQL Server. Produce el mismo resultado: agrupación por año-mes.
      * </p>
      */
     public List<MonthlyTrendDto> getMonthlyTrend() throws SQLException {
@@ -32,14 +38,14 @@ public class TrendAnalyticsService {
 
         String sql = """
                 SELECT
-                    FORMAT(collection_date, 'yyyy-MM') AS month,
+                    strftime(collection_date, '%Y-%m') AS month,
                     SUM(amount) AS total
                 FROM collections
-                GROUP BY FORMAT(collection_date, 'yyyy-MM')
+                GROUP BY strftime(collection_date, '%Y-%m')
                 ORDER BY month
                 """;
 
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = duckDbDataSource.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {

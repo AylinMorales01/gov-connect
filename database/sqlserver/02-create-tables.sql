@@ -73,6 +73,25 @@ END
 GO
 
 -- ==========================================
+-- Tabla: users
+-- ==========================================
+IF OBJECT_ID(N'dbo.users', N'U') IS NULL
+BEGIN
+    CREATE TABLE users (
+        id            BIGINT IDENTITY(1,1) PRIMARY KEY,
+        username      VARCHAR(50)  NOT NULL UNIQUE,
+        email         VARCHAR(100) NOT NULL UNIQUE,
+        password_hash VARCHAR(255) NOT NULL,
+        full_name     VARCHAR(150) NOT NULL,
+        role          VARCHAR(20)  NOT NULL DEFAULT 'USER',
+        active        BIT          NOT NULL DEFAULT 1,
+        created_at    DATETIME2    NOT NULL DEFAULT GETDATE(),
+        updated_at    DATETIME2    NULL
+    );
+END
+GO
+
+-- ==========================================
 -- Tabla: automation_logs
 -- Auditoría de ejecuciones de workflows de
 -- automatización (n8n u otras herramientas).
