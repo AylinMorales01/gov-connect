@@ -71,3 +71,22 @@ BEGIN
     );
 END
 GO
+
+-- ==========================================
+-- Tabla: automation_logs
+-- Auditoría de ejecuciones de workflows de
+-- automatización (n8n u otras herramientas).
+-- ==========================================
+IF OBJECT_ID(N'dbo.automation_logs', N'U') IS NULL
+    BEGIN
+        CREATE TABLE automation_logs (
+                                         id                BIGINT IDENTITY(1,1) PRIMARY KEY,
+                                         user_id           BIGINT        NULL,
+                                         process           VARCHAR(100)  NOT NULL,
+                                         status            VARCHAR(30)   NOT NULL,
+                                         message           VARCHAR(255)  NULL,
+                                         execution_time_ms INT           NULL,
+                                         created_at        DATETIME2     NOT NULL DEFAULT GETDATE()
+        );
+    END
+GO

@@ -17,6 +17,13 @@ public final class ApiMessages {
     public static final String BUDGET_EXECUTION_SUCCESS =
             "Ejecución presupuestal obtenida correctamente";
 
+    // ── Automation ─────────────────────────────────────────
+    public static final String AUTOMATION_LOG_STORED =
+            "Registro de automatización almacenado correctamente";
+
+    public static final String AUTOMATION_LOGS_HISTORY_SUCCESS =
+            "Historial de automatizaciones obtenido correctamente";
+
     // ── Analytics ──────────────────────────────────────────
     public static final String ANALYTICS_HEALTH_SUCCESS =
             "DuckDB conectado correctamente";

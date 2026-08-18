@@ -2,6 +2,7 @@ import { Box, Typography, CircularProgress, Alert, Grid } from '@mui/material';
 import { useDashboard } from '../hooks/useDashboard';
 import { useMonthlyTrend } from '../hooks/useMonthlyTrend';
 import DashboardCard from '../components/cards/DashboardCard';
+
 import MonthlyTrendChart from '../components/charts/MonthlyTrendChart';
 import DepartmentRankingTable from '../components/tables/DepartmentRankingTable';
 import ExpiringContractsList from '../components/tables/ExpiringContractsList';
@@ -102,6 +103,7 @@ export default function DashboardPage() {
                 <Grid size={{ xs: 12 }}>
                     <ExpiringContractsList />
                 </Grid>
+
             </Grid>
         </Box>
     );
