@@ -36,6 +36,7 @@ public class DuckDbConfig {
     private String duckDbPath;
 
     @Bean
+    @AnalyticalDataSource
     public DataSource duckDbDataSource() {
         String url = "jdbc:duckdb:" + duckDbPath;
         DriverManagerDataSource dataSource = new DriverManagerDataSource();

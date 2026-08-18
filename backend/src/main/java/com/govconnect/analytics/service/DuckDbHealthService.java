@@ -1,6 +1,6 @@
 package com.govconnect.analytics.service;
 
-import org.springframework.beans.factory.annotation.Qualifier;
+import com.govconnect.analytics.config.AnalyticalDataSource;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
@@ -14,9 +14,9 @@ public class DuckDbHealthService {
 
     private final DataSource duckDbDataSource;
 
-    // Constructor explícito: @Qualifier en el parámetro evita ambigüedad en la
-    // inyección (no depende del nombre del field ni del comportamiento de Lombok).
-    public DuckDbHealthService(@Qualifier("duckDbDataSource") DataSource duckDbDataSource) {
+    // Constructor explícito: la anotación @AnalyticalDataSource evita ambigüedad
+    // en la inyección sin depender del nombre del bean ni del comportamiento de Lombok.
+    public DuckDbHealthService(@AnalyticalDataSource DataSource duckDbDataSource) {
         this.duckDbDataSource = duckDbDataSource;
     }
 

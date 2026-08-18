@@ -1,5 +1,6 @@
 package com.govconnect;
 
+import com.govconnect.analytics.config.AnalyticalDataSource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -49,6 +50,7 @@ class GovConnectApiApplicationTests {
     static class TestDuckDbConfig {
 
         @Bean
+        @AnalyticalDataSource
         DataSource duckDbDataSource() {
             DriverManagerDataSource ds = new DriverManagerDataSource();
             ds.setUrl("jdbc:duckdb::memory:");

@@ -1,7 +1,7 @@
 package com.govconnect.analytics.service;
 
+import com.govconnect.analytics.config.AnalyticalDataSource;
 import com.govconnect.analytics.dto.MonthlyTrendDto;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
@@ -23,9 +23,9 @@ public class TrendAnalyticsService {
 
     private final DataSource duckDbDataSource;
 
-    // Constructor explícito: @Qualifier en el parámetro evita ambigüedad en la
-    // inyección (no depende del nombre del field ni del comportamiento de Lombok).
-    public TrendAnalyticsService(@Qualifier("duckDbDataSource") DataSource duckDbDataSource) {
+    // Constructor explícito: la anotación @AnalyticalDataSource evita ambigüedad
+    // en la inyección sin depender del nombre del bean ni del comportamiento de Lombok.
+    public TrendAnalyticsService(@AnalyticalDataSource DataSource duckDbDataSource) {
         this.duckDbDataSource = duckDbDataSource;
     }
 

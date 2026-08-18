@@ -1,7 +1,7 @@
 package com.govconnect.analytics.etl;
 
+import com.govconnect.analytics.config.AnalyticalDataSource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -30,9 +30,9 @@ public class ImportService {
 
     private final DataSource duckDbDataSource;
 
-    // Constructor explícito: @Qualifier en el parámetro evita ambigüedad en la
-    // inyección (no depende del nombre del field ni del comportamiento de Lombok).
-    public ImportService(@Qualifier("duckDbDataSource") DataSource duckDbDataSource) {
+    // Constructor explícito: la anotación @AnalyticalDataSource evita ambigüedad
+    // en la inyección sin depender del nombre del bean ni del comportamiento de Lombok.
+    public ImportService(@AnalyticalDataSource DataSource duckDbDataSource) {
         this.duckDbDataSource = duckDbDataSource;
     }
 
