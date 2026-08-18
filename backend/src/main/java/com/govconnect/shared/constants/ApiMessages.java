@@ -28,8 +28,11 @@ public final class ApiMessages {
     public static final String ANALYTICS_HEALTH_SUCCESS =
             "DuckDB conectado correctamente";
 
-    public static final String ANALYTICS_ETL_SUCCESS =
-            "Proceso ETL finalizado correctamente";
+    public static final String ANALYTICS_ETL_STARTED =
+            "Proceso ETL iniciado en segundo plano. Consulte su estado con el taskId devuelto.";
+
+    public static final String ANALYTICS_ETL_STATUS =
+            "Estado de la tarea ETL obtenido correctamente";
 
     public static final String ANALYTICS_MONTHLY_TREND_SUCCESS =
             "Tendencia mensual obtenida correctamente";
@@ -43,6 +46,9 @@ public final class ApiMessages {
     // ── Auth ─────────────────────────────────────────────
     public static final String AUTH_SUCCESS =
             "Autenticación exitosa";
+
+    public static final String AUTH_ME_SUCCESS =
+            "Usuario autenticado obtenido correctamente";
 
     public static final String AUTH_BAD_CREDENTIALS =
             "Credenciales inválidas. Verifique usuario y contraseña.";
