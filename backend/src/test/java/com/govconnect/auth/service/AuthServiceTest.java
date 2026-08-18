@@ -80,7 +80,7 @@ class AuthServiceTest {
         AuthService.AuthResult result = authService.authenticate(USERNAME, PASSWORD);
 
         assertThat(result).isNotNull();
-        assertThat(result.authResponse().token()).isEqualTo(ACCESS_TOKEN);
+        assertThat(result.accessToken()).isEqualTo(ACCESS_TOKEN);
         assertThat(result.authResponse().role()).isEqualTo("USER");
         assertThat(result.authResponse().expiresIn()).isEqualTo(3600L);
         assertThat(result.refreshToken()).isEqualTo(REFRESH_TOKEN);
@@ -122,7 +122,7 @@ class AuthServiceTest {
         AuthService.AuthResult result = authService.refreshAccessToken(REFRESH_TOKEN);
 
         assertThat(result).isNotNull();
-        assertThat(result.authResponse().token()).isEqualTo(NEW_ACCESS_TOKEN);
+        assertThat(result.accessToken()).isEqualTo(NEW_ACCESS_TOKEN);
         assertThat(result.refreshToken()).isEqualTo(NEW_REFRESH_TOKEN);
     }
 

@@ -239,6 +239,22 @@ public class JwtService {
         return refreshExpirationSeconds;
     }
 
+    /**
+     * Devuelve los segundos restantes hasta la expiración del token.
+     * <p>
+     * Devuelve {@code 0} si el token es inválido o ya expiró.
+     * </p>
+     */
+    public long getRemainingSeconds(String token) {
+        try {
+            Date expiration = extractExpiration(token);
+            long remaining = (expiration.getTime() - System.currentTimeMillis()) / 1000;
+            return Math.max(remaining, 0);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
     // ── Métodos privados ──────────────────────────────
 
     private boolean isTokenExpired(String token) {

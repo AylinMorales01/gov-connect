@@ -59,6 +59,12 @@ jwt:
   expiration: ${JWT_EXPIRATION:3600}
   refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800}
 
+# ── Cookies de sesión ──────────────────────────────
+app:
+  # true => cookies marcadas Secure (solo se envían por HTTPS).
+  # Debe ser true en producción.
+  cookie-secure: ${COOKIE_SECURE:false}
+
 # ── Logging base (sobreescribible por perfil) ────────
 logging:
   level:

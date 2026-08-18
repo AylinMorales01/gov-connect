@@ -33,7 +33,7 @@ public class AuthService {
      * Resultado interno de la autenticación: access token para el header
      * y refresh token para la cookie HttpOnly.
      */
-    public record AuthResult(AuthResponse authResponse, String refreshToken) {}
+    public record AuthResult(String accessToken, String refreshToken, AuthResponse authResponse) {}
 
     // ── Login ──────────────────────────────────────────────
 
@@ -65,12 +65,11 @@ public class AuthService {
         log.info("Usuario autenticado exitosamente: '{}' con rol '{}'", username, user.getRole());
 
         AuthResponse authResponse = new AuthResponse(
-                accessToken,
-                jwtService.getExpirationSeconds(),
-                user.getRole()
+                user.getRole(),
+                jwtService.getExpirationSeconds()
         );
 
-        return new AuthResult(authResponse, refreshToken);
+        return new AuthResult(accessToken, refreshToken, authResponse);
     }
 
     // ── Refresh ────────────────────────────────────────────
@@ -120,12 +119,11 @@ public class AuthService {
         log.debug("Tokens renovados para usuario '{}'", username);
 
         AuthResponse authResponse = new AuthResponse(
-                newAccessToken,
-                jwtService.getExpirationSeconds(),
-                user.getRole()
+                user.getRole(),
+                jwtService.getExpirationSeconds()
         );
 
-        return new AuthResult(authResponse, newRefreshToken);
+        return new AuthResult(newAccessToken, newRefreshToken, authResponse);
     }
 
     // ── Logout ─────────────────────────────────────────────

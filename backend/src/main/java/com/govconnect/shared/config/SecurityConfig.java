@@ -46,11 +46,17 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                // CSRF deshabilitado: la autenticación usa cookies HttpOnly con
+                // SameSite=Lax, que impide el envío en peticiones cross-site.
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> {
+                    // Sesión actual: requiere autenticación (lee la cookie HttpOnly).
+                    // Debe ir antes del permitAll de /api/v1/auth/** para que aplique.
+                    auth.requestMatchers("/api/v1/auth/me").authenticated();
+
                     // Endpoints públicos (sin autenticación)
                     auth.requestMatchers(
                             "/api/v1/auth/**",

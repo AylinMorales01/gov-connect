@@ -1,4 +1,5 @@
 import { Navigate, Outlet } from 'react-router-dom';
+import { Box, CircularProgress } from '@mui/material';
 import { useAuth } from '../../hooks/useAuth';
 import ForbiddenPage from '../../pages/ForbiddenPage';
 
@@ -24,7 +25,24 @@ interface ProtectedRouteProps {
  * </p>
  */
 export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
-    const { isAuthenticated, hasRole } = useAuth();
+    const { isAuthenticated, initializing, hasRole } = useAuth();
+
+    // Mientras se restaura la sesión (vía /auth/me), no redirigir para
+    // evitar un flash de /login en usuarios ya autenticados.
+    if (initializing) {
+        return (
+            <Box
+                sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    minHeight: '100vh',
+                }}
+            >
+                <CircularProgress />
+            </Box>
+        );
+    }
 
     if (!isAuthenticated) {
         return <Navigate to="/login" replace />;

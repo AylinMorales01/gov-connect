@@ -3,6 +3,7 @@ package com.govconnect.auth.security;
 import com.govconnect.auth.service.CustomUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,8 @@ import java.util.List;
 
 /**
  * Filtro que intercepta cada petición HTTP para extraer y validar
- * un JWT del header {@code Authorization: Bearer <token>}.
+ * un JWT. Extrae el token de la cookie HttpOnly {@code access_token}
+ * o, como retrocompatibilidad, del header {@code Authorization: Bearer <token>}.
  * <p>
  * <b>Comportamiento:</b>
  * <ul>
@@ -45,6 +47,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
+    private static final String ACCESS_COOKIE = "access_token";
 
     @Override
     protected void doFilterInternal(
@@ -53,15 +56,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
-        String authHeader = request.getHeader(AUTHORIZATION_HEADER);
+        String token = extractToken(request);
 
-        // Sin header Authorization: continuar sin autenticar
-        if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
+        // Sin token: continuar sin autenticar
+        if (token == null) {
             filterChain.doFilter(request, response);
             return;
         }
-
-        String token = authHeader.substring(BEARER_PREFIX.length());
 
         try {
             String username = jwtService.extractUsername(token);
@@ -98,5 +99,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * Extrae el token JWT de la cookie {@code access_token} o, como
+     * retrocompatibilidad, del header {@code Authorization: Bearer ...}.
+     *
+     * @return el token, o {@code null} si no está presente.
+     */
+    private String extractToken(HttpServletRequest request) {
+        String authHeader = request.getHeader(AUTHORIZATION_HEADER);
+        if (authHeader != null && authHeader.startsWith(BEARER_PREFIX)) {
+            return authHeader.substring(BEARER_PREFIX.length());
+        }
+
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (ACCESS_COOKIE.equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
     }
 }

@@ -1,27 +1,15 @@
 package com.govconnect.auth.dto;
 
 /**
- * DTO para la respuesta de autenticación exitosa.
- * Contiene el JWT, metadatos y el rol del usuario.
+ * DTO para la respuesta de autenticación exitosa (login y refresh).
  * <p>
- * Los componentes del record se serializan en orden de declaración
- * (nativo en Java 21), sin necesidad de {@code @JsonPropertyOrder}.
+ * El access token ya <b>no</b> viaja en el cuerpo: se entrega en una
+ * cookie HttpOnly. El cuerpo solo expone el rol y la expiración en
+ * segundos (información no sensible) para la UX del frontend
+ * (badge de rol y advertencia de expiración de sesión).
  * </p>
  */
 public record AuthResponse(
-        String token,
-        String tokenType,
-        long expiresIn,
-        String role
-) {
-
-    /** Tipo de token según RFC 6750 (Bearer). */
-    private static final String TOKEN_TYPE_BEARER = "Bearer";
-
-    /**
-     * Constructor de conveniencia: asigna {@link #TOKEN_TYPE_BEARER} automáticamente.
-     */
-    public AuthResponse(String token, long expiresIn, String role) {
-        this(token, TOKEN_TYPE_BEARER, expiresIn, role);
-    }
-}
+        String role,
+        long expiresIn
+) {}
