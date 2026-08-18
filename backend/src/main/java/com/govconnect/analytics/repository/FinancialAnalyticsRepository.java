@@ -1,6 +1,5 @@
 package com.govconnect.analytics.repository;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
@@ -30,11 +29,15 @@ import java.sql.Statement;
  * </p>
  */
 @Repository
-@RequiredArgsConstructor
 public class FinancialAnalyticsRepository {
 
-    @Qualifier("duckDbDataSource")
     private final DataSource duckDbDataSource;
+
+    // Constructor explícito: @Qualifier en el parámetro evita ambigüedad en la
+    // inyección (no depende del nombre del field ni del comportamiento de Lombok).
+    public FinancialAnalyticsRepository(@Qualifier("duckDbDataSource") DataSource duckDbDataSource) {
+        this.duckDbDataSource = duckDbDataSource;
+    }
 
     /**
      * CTE compartida para todas las subconsultas.

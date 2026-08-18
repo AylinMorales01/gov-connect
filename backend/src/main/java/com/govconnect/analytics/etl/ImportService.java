@@ -1,6 +1,5 @@
 package com.govconnect.analytics.etl;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,12 +25,16 @@ import java.sql.Statement;
  * </p>
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class ImportService {
 
-    @Qualifier("duckDbDataSource")
     private final DataSource duckDbDataSource;
+
+    // Constructor explícito: @Qualifier en el parámetro evita ambigüedad en la
+    // inyección (no depende del nombre del field ni del comportamiento de Lombok).
+    public ImportService(@Qualifier("duckDbDataSource") DataSource duckDbDataSource) {
+        this.duckDbDataSource = duckDbDataSource;
+    }
 
     /** Directorio de CSVs, configurable vía {@code etl.export-dir}. */
     @Value("${etl.export-dir:exports}")

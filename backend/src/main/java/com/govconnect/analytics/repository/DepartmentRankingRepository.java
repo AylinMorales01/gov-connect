@@ -1,6 +1,5 @@
 package com.govconnect.analytics.repository;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
@@ -23,11 +22,15 @@ import java.util.List;
  * </p>
  */
 @Repository
-@RequiredArgsConstructor
 public class DepartmentRankingRepository {
 
-    @Qualifier("duckDbDataSource")
     private final DataSource duckDbDataSource;
+
+    // Constructor explícito: @Qualifier en el parámetro evita ambigüedad en la
+    // inyección (no depende del nombre del field ni del comportamiento de Lombok).
+    public DepartmentRankingRepository(@Qualifier("duckDbDataSource") DataSource duckDbDataSource) {
+        this.duckDbDataSource = duckDbDataSource;
+    }
 
     /**
      * DTO interno para capturar los datos crudos antes del cálculo en el servicio.

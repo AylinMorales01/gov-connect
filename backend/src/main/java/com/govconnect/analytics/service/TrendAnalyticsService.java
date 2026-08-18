@@ -1,7 +1,6 @@
 package com.govconnect.analytics.service;
 
 import com.govconnect.analytics.dto.MonthlyTrendDto;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
@@ -20,11 +19,15 @@ import java.util.List;
  * </p>
  */
 @Service
-@RequiredArgsConstructor
 public class TrendAnalyticsService {
 
-    @Qualifier("duckDbDataSource")
     private final DataSource duckDbDataSource;
+
+    // Constructor explícito: @Qualifier en el parámetro evita ambigüedad en la
+    // inyección (no depende del nombre del field ni del comportamiento de Lombok).
+    public TrendAnalyticsService(@Qualifier("duckDbDataSource") DataSource duckDbDataSource) {
+        this.duckDbDataSource = duckDbDataSource;
+    }
 
     /**
      * Obtiene la tendencia mensual de recaudos desde DuckDB.
