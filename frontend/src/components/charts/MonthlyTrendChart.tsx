@@ -60,11 +60,11 @@ export default function MonthlyTrendChart({
                                     width={70}
                                 />
                                 <Tooltip
-                                    formatter={(value: number) => [
-                                        formatCompactCurrency(value),
+                                    formatter={(value) => [
+                                        formatCompactCurrency(Number(value)),
                                         'Recaudo',
                                     ]}
-                                    labelFormatter={(label: string) => `Mes: ${formatMonth(label)}`}
+                                    labelFormatter={(label) => `Mes: ${formatMonth(String(label))}`}
                                 />
                                 <Area
                                     type="monotone"

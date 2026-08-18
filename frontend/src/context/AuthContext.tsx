@@ -6,7 +6,7 @@ import {
     type ReactNode,
 } from 'react';
 import { loginRequest, logoutRequest } from '../api/authApi';
-import { setOnTokenRefreshed } from '../api/axios';
+import { setOnTokenRefreshed, setOnSessionExpired } from '../api/axios';
 
 // ── Tipos ──────────────────────────────────────────────
 
@@ -107,7 +107,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 tokenExpiresAt: decoded?.exp ? decoded.exp * 1000 : null,
             });
         });
-        return () => setOnTokenRefreshed(null);
+
+        setOnSessionExpired(() => {
+            localStorage.removeItem(STORAGE_KEY_TOKEN);
+            localStorage.removeItem(STORAGE_KEY_USERNAME);
+            localStorage.removeItem(STORAGE_KEY_ROLE);
+            setAuth({
+                token: null,
+                username: null,
+                role: null,
+                tokenExpiresAt: null,
+            });
+        });
+
+        return () => {
+            setOnTokenRefreshed(null);
+            setOnSessionExpired(null);
+        };
     }, []);
 
     // ── Login ──────────────────────────────────────────

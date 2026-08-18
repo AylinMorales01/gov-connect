@@ -46,6 +46,16 @@ export function setOnTokenRefreshed(cb: typeof onTokenRefreshed) {
     onTokenRefreshed = cb;
 }
 
+// Callback que AuthContext registra para limpiar el estado de sesión
+// cuando el refresh falla (token expirado o revocado). Al limpiar el
+// estado, el ProtectedRoute redirige a /login vía React Router, sin
+// recargar la página.
+let onSessionExpired: (() => void) | null = null;
+
+export function setOnSessionExpired(cb: typeof onSessionExpired) {
+    onSessionExpired = cb;
+}
+
 // ── Response interceptor: manejar 401 con refresh ──
 api.interceptors.response.use(
     (response) => response,
@@ -111,14 +121,20 @@ api.interceptors.response.use(
             // El refresh falló: token expirado, revocado o usuario inactivo
             processQueue(refreshError, null);
 
-            // Limpiar sesión
-            localStorage.removeItem('govconnect_token');
-            localStorage.removeItem('govconnect_username');
-            localStorage.removeItem('govconnect_role');
-
-            // Redirigir al login (evitar redirect en /login)
-            if (window.location.pathname !== '/login') {
-                window.location.href = '/login';
+            // Notificar a AuthContext para limpiar el estado de sesión.
+            // Al quedar desautenticado, ProtectedRoute redirige a /login
+            // vía React Router (sin recarga completa de la página).
+            if (onSessionExpired) {
+                onSessionExpired();
+            } else {
+                // Fallback si el callback aún no fue registrado (p. ej. antes
+                // de montar el provider): limpiar y recargar.
+                localStorage.removeItem('govconnect_token');
+                localStorage.removeItem('govconnect_username');
+                localStorage.removeItem('govconnect_role');
+                if (window.location.pathname !== '/login') {
+                    window.location.href = '/login';
+                }
             }
 
             return Promise.reject(refreshError);
