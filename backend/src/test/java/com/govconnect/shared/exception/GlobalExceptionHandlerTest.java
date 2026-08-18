@@ -12,9 +12,13 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.sql.SQLException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Tests unitarios para {@link GlobalExceptionHandler}.
@@ -24,10 +28,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GlobalExceptionHandlerTest {
 
     private GlobalExceptionHandler handler;
+    private HttpServletResponse httpResponse;
 
     @BeforeEach
     void setUp() {
         handler = new GlobalExceptionHandler();
+        httpResponse = mock(HttpServletResponse.class);
+        when(httpResponse.isCommitted()).thenReturn(false);
     }
 
     @Nested
@@ -38,7 +45,7 @@ class GlobalExceptionHandlerTest {
         @DisplayName("BadCredentialsException → 401")
         void badCredentialsShouldReturn401() {
             ResponseEntity<ApiResponse<Void>> response =
-                    handler.handleBadCredentials(new BadCredentialsException("bad"));
+                    handler.handleBadCredentials(new BadCredentialsException("bad"), httpResponse);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
             assertThat(response.getBody()).isNotNull();
@@ -50,7 +57,7 @@ class GlobalExceptionHandlerTest {
         @DisplayName("AuthenticationException → 401")
         void authenticationExceptionShouldReturn401() {
             ResponseEntity<ApiResponse<Void>> response =
-                    handler.handleAuthentication(new AuthenticationException("expired") {});
+                    handler.handleAuthentication(new AuthenticationException("expired") {}, httpResponse);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
             assertThat(response.getBody().success()).isFalse();
@@ -65,7 +72,7 @@ class GlobalExceptionHandlerTest {
         @DisplayName("AccessDeniedException → 403")
         void accessDeniedShouldReturn403() {
             ResponseEntity<ApiResponse<Void>> response =
-                    handler.handleAccessDenied(new AccessDeniedException("no access"));
+                    handler.handleAccessDenied(new AccessDeniedException("no access"), httpResponse);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
             assertThat(response.getBody().success()).isFalse();
@@ -125,7 +132,7 @@ class GlobalExceptionHandlerTest {
         @DisplayName("Todas las respuestas de error deben tener data=null")
         void errorResponsesShouldHaveNullData() {
             ResponseEntity<ApiResponse<Void>> response =
-                    handler.handleBadCredentials(new BadCredentialsException("x"));
+                    handler.handleBadCredentials(new BadCredentialsException("x"), httpResponse);
 
             assertThat(response.getBody().data()).isNull();
             assertThat(response.getBody().timestamp()).isNotNull();
