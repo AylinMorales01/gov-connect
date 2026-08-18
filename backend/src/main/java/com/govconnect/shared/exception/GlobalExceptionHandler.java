@@ -4,11 +4,15 @@ import com.govconnect.shared.constants.ApiMessages;
 import com.govconnect.shared.response.ApiResponse;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.NoResultException;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -27,6 +31,68 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+
+    // ── 401 Unauthorized ──────────────────────────────────
+
+    /**
+     * Credenciales inválidas (usuario no existe o contraseña incorrecta).
+     * <p>
+     * Si el response ya fue commiteado por el {@code SecurityConfig}
+     * (ruta de filtro), Spring MVC ignora la escritura y solo registra
+     * un warning en DEBUG.
+     * </p>
+     */
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBadCredentials(
+            BadCredentialsException ex, HttpServletResponse response) {
+        log.warn("Intento de autenticación fallido: {}", ex.getMessage());
+        if (response.isCommitted()) {
+            log.debug("Response ya commiteado — omitiendo escritura de BadCredentialsException");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error(ApiMessages.AUTH_BAD_CREDENTIALS));
+    }
+
+    /**
+     * Fallback para cualquier otra excepción de autenticación.
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAuthentication(
+            AuthenticationException ex, HttpServletResponse response) {
+        log.warn("Error de autenticación [{}]: {}",
+                ex.getClass().getSimpleName(), ex.getMessage());
+        if (response.isCommitted()) {
+            log.debug("Response ya commiteado — omitiendo escritura de AuthenticationException");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error(ApiMessages.AUTH_UNAUTHORIZED));
+    }
+
+    // ── 403 Forbidden ─────────────────────────────────────
+
+    /**
+     * Acceso denegado por falta de permisos (rol insuficiente).
+     * <p>
+     * Si el response ya fue commiteado por el {@code SecurityConfig}
+     * (ruta de filtro), Spring MVC ignora la escritura.
+     * </p>
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAccessDenied(
+            AccessDeniedException ex, HttpServletResponse response) {
+        log.warn("Acceso denegado: {}", ex.getMessage());
+        if (response.isCommitted()) {
+            log.debug("Response ya commiteado — omitiendo escritura de AccessDeniedException");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.error(ApiMessages.AUTH_FORBIDDEN));
+    }
 
     // ── 404 Not Found ──────────────────────────────────────
 
@@ -62,8 +128,7 @@ public class GlobalExceptionHandler {
         log.warn("Argumento inválido: {}", ex.getMessage());
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(ApiMessages.ERROR_BAD_REQUEST
-                        + ": " + ex.getMessage()));
+                .body(ApiResponse.error(ApiMessages.ERROR_BAD_REQUEST));
     }
 
     /**

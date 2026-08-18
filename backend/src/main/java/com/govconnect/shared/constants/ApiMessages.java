@@ -40,6 +40,19 @@ public final class ApiMessages {
     public static final String ANALYTICS_DEPARTMENT_RANKING_SUCCESS =
             "Ranking de dependencias obtenido correctamente";
 
+    // ── Auth ─────────────────────────────────────────────
+    public static final String AUTH_SUCCESS =
+            "Autenticación exitosa";
+
+    public static final String AUTH_BAD_CREDENTIALS =
+            "Credenciales inválidas. Verifique usuario y contraseña.";
+
+    public static final String AUTH_UNAUTHORIZED =
+            "Se requiere autenticación para acceder a este recurso.";
+
+    public static final String AUTH_FORBIDDEN =
+            "No tiene permisos suficientes para acceder a este recurso.";
+
     // ── Errores (usados por GlobalExceptionHandler) ─────────
     public static final String ERROR_NOT_FOUND =
             "El recurso solicitado no fue encontrado";

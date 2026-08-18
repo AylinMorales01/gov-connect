@@ -1,0 +1,31 @@
+# =============================================================================
+# Gov Connect — Perfil de Producción (spring.profiles.active=prod)
+# =============================================================================
+# Sobreescribe la configuración base para despliegue en producción.
+# Activación: SPRING_PROFILES_ACTIVE=prod
+
+spring:
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+# Swagger deshabilitado en producción
+swagger:
+  enabled: false
+
+# ── JWT: valores recomendados para producción ─────────
+# jwt.expiration: 900 (15 min) con refresh token rotativo
+# jwt.refresh-expiration: 604800 (7 días) con invalidación server-side
+#
+# Configurar mediante variables de entorno:
+#   JWT_EXPIRATION=900
+#   JWT_REFRESH_EXPIRATION=604800
+
+# Logging: solo eventos importantes
+logging:
+  level:
+    root: WARN
+    com.govconnect: INFO
+    org.springframework.security: WARN
