@@ -1,4 +1,5 @@
 import { Box, Typography, CircularProgress, Alert, Grid } from '@mui/material';
+import axios from 'axios';
 import { useDashboard } from '../hooks/useDashboard';
 import { useMonthlyTrend } from '../hooks/useMonthlyTrend';
 import DashboardCard from '../components/cards/DashboardCard';
@@ -17,8 +18,27 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { formatCompactCurrency } from '../utils/formatCompactCurrency';
 import { formatPercentage } from '../utils/formatPercentage';
 
+/** Forma mínima del cuerpo {@code ApiResponse} que devuelve el backend en errores. */
+interface ApiErrorBody {
+    message?: string;
+}
+
+/**
+ * Extrae un mensaje legible de un error desconocido usando type narrowing de axios.
+ * Sin {@code as any} — usa {@code axios.isAxiosError} y una interfaz acotada.
+ */
+function getErrorMessage(error: unknown): string {
+    if (axios.isAxiosError(error) && error.response) {
+        const { status } = error.response;
+        const body = error.response.data as ApiErrorBody;
+        const backendMsg = body?.message;
+        return `Error ${status}: ${backendMsg || 'Sin detalles del servidor'}`;
+    }
+    return 'No se pudo conectar con el backend. Verifica que esté corriendo en el puerto 8080.';
+}
+
 export default function DashboardPage() {
-    const { data, isLoading, isError } = useDashboard();
+    const { data, isLoading, isError, error } = useDashboard();
     const trend = useMonthlyTrend();
 
     if (isLoading) {
@@ -30,9 +50,10 @@ export default function DashboardPage() {
     }
 
     if (isError || !data) {
+        const detail = getErrorMessage(error);
         return (
             <Alert severity="error" sx={{ mt: 2 }}>
-                Error al obtener los datos del dashboard. Verifica la conexión con el backend.
+                {detail}
             </Alert>
         );
     }
