@@ -1,24 +1,72 @@
+# =============================================================================
+# Gov Connect — Configuración base (compartida por todos los perfiles)
+# =============================================================================
+# Valores por defecto seguros para producción. El perfil `dev` sobreescribe
+# lo necesario para desarrollo local.
+#
+# Perfiles activos:
+#   Desarrollo:  SPRING_PROFILES_ACTIVE=dev  (o --spring.profiles.active=dev)
+#   Producción:   SPRING_PROFILES_ACTIVE=prod (o --spring.profiles.active=prod)
+#   Sin perfil:   se aplican solo los valores de este archivo.
+# =============================================================================
+
 server:
   port: ${SERVER_PORT:8080}
 
 spring:
   datasource:
     primary:
-      jdbc-url: ${GOVCONNECT_DB_URL:jdbc:sqlserver://localhost:1433;databaseName=GOV_CONNECT_DB;encrypt=true;trustServerCertificate=true}
-      username: ${GOVCONNECT_DB_USERNAME:sa}
-      password: ${GOVCONNECT_DB_PASSWORD:}
+      jdbc-url: ${GOVCONNECT_DB_URL}
+      username: ${GOVCONNECT_DB_USERNAME}
+      password: ${GOVCONNECT_DB_PASSWORD}
       driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
 
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: true
+    # show-sql y format_sql se activan solo en perfil dev
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
 
 management:
   endpoints:
     web:
       exposure:
         include: health, info
+
+# ── Swagger ─────────────────────────────────────────
+swagger:
+  enabled: ${SWAGGER_ENABLED:true}
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}
+
+# ── DuckDB (base analítica embebida) ──────────────────
+duckdb:
+  path: ${DUCKDB_PATH:database/analytics/analytics.duckdb}
+
+# ── ETL ──────────────────────────────────────────────
+etl:
+  export-dir: ${ETL_EXPORT_DIR:exports}
+
+# ── JWT ────────────────────────────────────────────
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION:3600}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800}
+
+# ── Cookies de sesión ──────────────────────────────
+app:
+  # true => cookies marcadas Secure (solo se envían por HTTPS).
+  # Debe ser true en producción.
+  cookie-secure: ${COOKIE_SECURE:false}
+
+# ── Logging base (sobreescribible por perfil) ────────
+logging:
+  level:
+    root: INFO
+    com.govconnect: INFO

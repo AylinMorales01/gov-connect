@@ -1,0 +1,26 @@
+# =============================================================================
+# Gov Connect — Perfil de Desarrollo (spring.profiles.active=dev)
+# =============================================================================
+# Sobreescribe la configuración base para desarrollo local.
+# Activación: SPRING_PROFILES_ACTIVE=dev
+
+spring:
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+# Swagger habilitado (explícito, aunque ya es el default)
+swagger:
+  enabled: true
+
+# Logging detallado para debugging
+logging:
+  level:
+    root: WARN
+    com.govconnect: DEBUG
+    org.springframework.security: DEBUG
+    # Oculta el ruido de Hibernate SQL cuando show-sql está activo
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

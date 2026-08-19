@@ -38,36 +38,36 @@ import type { AutomationLogItem } from '../types/dashboard';
 
 type StatusFilter = 'ALL' | 'SUCCESS' | 'ERROR';
 
-/** Formatea una fecha ISO a dd/MM/yyyy HH:mm. */
-function formatDateTime(iso: string): string {
-    const date = new Date(iso);
+/**
+ * Formatea una fecha (ISO string o timestamp ms) a formato local.
+ * @param dateOrTs fecha ISO (string) o timestamp Unix en milisegundos (number).
+ * @param showSeconds si es true, incluye segundos en la salida.
+ */
+function formatDateTime(dateOrTs: string | number, showSeconds = false): string {
+    const date = new Date(dateOrTs);
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${day}/${month}/${year} ${hours}:${minutes}`;
+    const base = `${day}/${month}/${year} ${hours}:${minutes}`;
+    if (showSeconds) {
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        return `${base}:${seconds}`;
+    }
+    return base;
 }
 
-/** Formatea un timestamp Unix (ms) a HH:mm:ss. */
-function formatTime(ts: number): string {
-    const date = new Date(ts);
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    return `${hours}:${minutes}:${seconds}`;
-}
-
-/** Formatea una fecha ISO a dd/MM/yyyy HH:mm:ss (para detalle). */
-function formatDateTimeFull(iso: string): string {
-    const date = new Date(iso);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+/**
+ * Devuelve un texto legible indicando cuánto tiempo pasó desde la última
+ * actualización. Ej: "ahora", "hace 3 min", "12:30".
+ */
+function formatTimeAgo(ts: number): string {
+    const seconds = Math.floor((Date.now() - ts) / 1000);
+    if (seconds < 60) return 'ahora';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `hace ${minutes} min`;
+    return formatDateTime(ts);
 }
 
 /** Renderiza el chip de estado con ícono y color. */
@@ -298,7 +298,7 @@ export default function AutomationPage() {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Typography variant="body2" color="text.secondary">
                                 Última actualización:{' '}
-                                {dataUpdatedAt ? formatTime(dataUpdatedAt) : '—'}
+                                {dataUpdatedAt ? formatTimeAgo(dataUpdatedAt) : '—'}
                             </Typography>
                             {isBackgroundRefreshing && (
                                 <CircularProgress size={14} sx={{ color: 'text.secondary' }} />
@@ -453,7 +453,7 @@ export default function AutomationPage() {
 
                             <DetailField
                                 label="Fecha de ejecución"
-                                value={formatDateTimeFull(selectedLog.createdAt)}
+                                value={formatDateTime(selectedLog.createdAt, true)}
                             />
 
                             <DetailField

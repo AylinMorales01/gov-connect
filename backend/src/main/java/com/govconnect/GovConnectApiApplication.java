@@ -23,10 +23,10 @@ public class GovConnectApiApplication {
     CommandLineRunner testConnection(DataSource dataSource) {
         return args -> {
             try (Connection connection = dataSource.getConnection()) {
-                log.info("Conexión a la base de datos establecida correctamente: {}", connection.getCatalog());
-            } catch (Exception e) {
-                log.error("No se pudo conectar a la base de datos: {}", e.getMessage());
+                log.info("Conexión a la base de datos establecida correctamente");
             }
+            // Si la conexión falla, la excepción se propaga y
+            // Spring Boot detiene el arranque (fail-fast).
         };
     }
 }

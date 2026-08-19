@@ -1,7 +1,6 @@
 package com.govconnect.analytics.repository;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Qualifier;
+import com.govconnect.analytics.config.AnalyticalDataSource;
 import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
@@ -13,12 +12,25 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Repositorio de solo lectura para el ranking de dependencias.
+ * <p>
+ * Consulta DuckDB (base analítica) poblada por el ETL desde SQL Server.
+ * La tabla {@code budgets} en DuckDB ya contiene {@code execution_percentage}
+ * pre-calculado durante la exportación, por lo que la consulta es más simple
+ * que su equivalente en SQL Server.
+ * </p>
+ */
 @Repository
-@RequiredArgsConstructor
 public class DepartmentRankingRepository {
 
-    @Qualifier("primaryDataSource")
-    private final DataSource dataSource;
+    private final DataSource duckDbDataSource;
+
+    // Constructor explícito: la anotación @AnalyticalDataSource evita ambigüedad
+    // en la inyección sin depender del nombre del bean ni del comportamiento de Lombok.
+    public DepartmentRankingRepository(@AnalyticalDataSource DataSource duckDbDataSource) {
+        this.duckDbDataSource = duckDbDataSource;
+    }
 
     /**
      * DTO interno para capturar los datos crudos antes del cálculo en el servicio.
@@ -30,11 +42,18 @@ public class DepartmentRankingRepository {
     ) {}
 
     /**
-     * Obtiene los datos crudos para el ranking desde SQL Server.
+     * Obtiene los datos crudos para el ranking desde DuckDB.
      * <p>
-     * {@code execution_percentage} se calcula en T-SQL porque no existe
-     * como columna física en la tabla {@code budgets}. La subconsulta
-     * permite agrupar por el alias sin repetir la expresión {@code CASE}.
+     * A diferencia de la consulta original contra SQL Server —que calculaba
+     * {@code execution_percentage} inline con un {@code CASE WHEN}— en DuckDB
+     * la columna ya existe en la tabla {@code budgets} porque el
+     * {@link com.govconnect.analytics.etl.ExportService} la pre-calcula
+     * durante la exportación.
+     * </p>
+     * <p>
+     * {@code COALESCE} es el equivalente estándar SQL de {@code ISNULL}
+     * de SQL Server. DuckDB soporta ambas, pero se prefiere {@code COALESCE}
+     * por portabilidad.
      * </p>
      */
     public List<DepartmentRawData> getRawRankingData() throws SQLException {
@@ -42,25 +61,16 @@ public class DepartmentRankingRepository {
 
         String sql = """
                 SELECT
-                    department,
-                    execution_percentage,
-                    ISNULL(SUM(amount), 0) AS total_collections
-                FROM (
-                    SELECT
-                        d.name AS department,
-                        CASE
-                            WHEN b.assigned_budget = 0 THEN 0
-                            ELSE (b.executed_budget * 100.0) / b.assigned_budget
-                        END AS execution_percentage,
-                        c.amount
-                    FROM departments d
-                    JOIN budgets b ON d.id = b.department_id
-                    JOIN collections c ON d.id = c.department_id
-                ) AS dept_data
-                GROUP BY department, execution_percentage
+                    d.name AS department,
+                    b.execution_percentage,
+                    COALESCE(SUM(c.amount), 0) AS total_collections
+                FROM departments d
+                JOIN budgets b ON d.id = b.department_id
+                JOIN collections c ON d.id = c.department_id
+                GROUP BY d.name, b.execution_percentage
                 """;
 
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = duckDbDataSource.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {

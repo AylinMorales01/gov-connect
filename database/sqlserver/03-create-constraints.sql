@@ -1,5 +1,5 @@
 -- ==========================================
--- FK: budgets.department_id → departments.id
+-- FK: budgets.department_id - departments.id
 -- ==========================================
 IF NOT EXISTS (
     SELECT 1 FROM sys.foreign_keys
@@ -15,7 +15,7 @@ END
 GO
 
 -- ==========================================
--- FK: contracts.department_id → departments.id
+-- FK: contracts.department_id - departments.id
 -- ==========================================
 IF NOT EXISTS (
     SELECT 1 FROM sys.foreign_keys
@@ -31,7 +31,7 @@ END
 GO
 
 -- ==========================================
--- FK: collections.department_id → departments.id
+-- FK: collections.department_id - departments.id
 -- ==========================================
 IF NOT EXISTS (
     SELECT 1 FROM sys.foreign_keys
@@ -46,11 +46,18 @@ BEGIN
 END
 GO
 
--- ──────────────────────────────────────────
--- NOTA: Las FKs para users/automation_logs se eliminan
--- intencionalmente. Estas tablas pertenecen al módulo de
--- autenticación (Sprint 6 del roadmap), aún no implementado.
--- Cuando ese módulo se aborde, se deberá:
---   1. Crear el DDL de users y automation_logs en 02-create-tables.sql
---   2. Agregar las FKs correspondientes en este archivo.
--- ──────────────────────────────────────────
+-- ==========================================
+-- FK: automation_logs.user_id - users.id
+-- ==========================================
+IF NOT EXISTS (
+    SELECT 1 FROM sys.foreign_keys
+    WHERE name = 'FK_AUTOMATION_LOG_USER'
+      AND parent_object_id = OBJECT_ID(N'dbo.automation_logs')
+)
+BEGIN
+    ALTER TABLE automation_logs
+        ADD CONSTRAINT FK_AUTOMATION_LOG_USER
+            FOREIGN KEY (user_id)
+                REFERENCES users(id);
+END
+GO
