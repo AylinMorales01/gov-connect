@@ -61,6 +61,13 @@ public class ImportService {
         loadCsvToDuckDb("budgets");
     }
 
+    /**
+     * Carga {@code contracts.csv} en la tabla {@code contracts} de DuckDB.
+     */
+    public void loadContractsCsv() throws SQLException {
+        loadCsvToDuckDb("contracts");
+    }
+
     // ── Plantilla genérica ──────────────────────────────────
 
     /**
