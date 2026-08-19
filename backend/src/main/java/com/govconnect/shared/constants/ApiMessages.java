@@ -17,6 +17,13 @@ public final class ApiMessages {
     public static final String BUDGET_EXECUTION_SUCCESS =
             "Ejecución presupuestal obtenida correctamente";
 
+    // ── Contracts ──────────────────────────────────────────
+    public static final String CONTRACTS_LIST_SUCCESS =
+            "Contratos obtenidos correctamente";
+
+    public static final String CONTRACTS_SUMMARY_SUCCESS =
+            "Resumen de contratos obtenido correctamente";
+
     // ── Automation ─────────────────────────────────────────
     public static final String AUTOMATION_LOG_STORED =
             "Registro de automatización almacenado correctamente";
@@ -42,6 +49,21 @@ public final class ApiMessages {
 
     public static final String ANALYTICS_DEPARTMENT_RANKING_SUCCESS =
             "Ranking de dependencias obtenido correctamente";
+
+    public static final String ANALYTICS_CONCEPT_BREAKDOWN_SUCCESS =
+            "Desglose de recaudos por concepto obtenido correctamente";
+
+    public static final String ANALYTICS_PAYMENT_METHOD_BREAKDOWN_SUCCESS =
+            "Desglose de recaudos por método de pago obtenido correctamente";
+
+    public static final String ANALYTICS_CONTRACTS_BY_STATUS_SUCCESS =
+            "Desglose de contratos por estado obtenido correctamente";
+
+    public static final String ANALYTICS_CONTRACTS_BY_DEPARTMENT_SUCCESS =
+            "Valor contratado por dependencia obtenido correctamente";
+
+    public static final String ANALYTICS_TOP_CONTRACTORS_SUCCESS =
+            "Ranking de contratistas obtenido correctamente";
 
     // ── Auth ─────────────────────────────────────────────
     public static final String AUTH_SUCCESS =
