@@ -80,7 +80,8 @@ public class SecurityConfig {
                     // Endpoints para usuarios autenticados (USER o ADMIN)
                     auth.requestMatchers(
                             "/api/v1/analytics/**",
-                            "/api/v1/automation/**"
+                            "/api/v1/automation/**",
+                            "/api/v1/contracts/**"
                     ).authenticated();
 
                     // Cualquier otra petición requiere autenticación

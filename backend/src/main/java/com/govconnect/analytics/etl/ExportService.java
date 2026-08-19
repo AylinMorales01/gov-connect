@@ -116,6 +116,41 @@ public class ExportService {
         );
     }
 
+    /**
+     * Exporta la tabla {@code contracts} (contratos) a CSV.
+     */
+    public void exportContractsToCsv() throws SQLException {
+        String sql = """
+                SELECT
+                    id,
+                    contract_number,
+                    contractor_name,
+                    object,
+                    contract_value,
+                    start_date,
+                    end_date,
+                    status,
+                    department_id
+                FROM contracts
+                ORDER BY id
+                """;
+
+        exportToCsv(
+                "contracts.csv",
+                sql,
+                "id,contract_number,contractor_name,object,contract_value,start_date,end_date,status,department_id",
+                rs -> rs.getLong("id") + "," +
+                        clean(rs.getString("contract_number")) + "," +
+                        clean(rs.getString("contractor_name")) + "," +
+                        clean(rs.getString("object")) + "," +
+                        rs.getBigDecimal("contract_value") + "," +
+                        rs.getDate("start_date") + "," +
+                        rs.getDate("end_date") + "," +
+                        clean(rs.getString("status")) + "," +
+                        rs.getLong("department_id")
+        );
+    }
+
     // ── Plantilla genérica ──────────────────────────────────
 
     /**

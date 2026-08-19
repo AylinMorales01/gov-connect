@@ -77,7 +77,7 @@ function StatusChip({ status }: { status: string }) {
     return (
         <Chip
             icon={isSuccess ? <CheckCircleIcon /> : <ErrorOutlineIcon />}
-            label={isSuccess ? '✓ SUCCESS' : '✕ ERROR'}
+            label={isSuccess ? 'SUCCESS' : 'ERROR'}
             color={isSuccess ? 'success' : 'error'}
             size="small"
             variant="outlined"

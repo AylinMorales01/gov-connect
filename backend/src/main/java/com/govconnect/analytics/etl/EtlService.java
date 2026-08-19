@@ -20,8 +20,8 @@ import java.sql.SQLException;
  * no es posible una transacción distribuida. La estrategia es:
  * <ol>
  *   <li>Limpiar CSVs de ejecuciones anteriores.</li>
- *   <li>Exportar desde SQL Server → CSV (3 tablas).</li>
- *   <li>Importar CSV → DuckDB (3 tablas).</li>
+ *   <li>Exportar desde SQL Server → CSV (4 tablas).</li>
+ *   <li>Importar CSV → DuckDB (4 tablas).</li>
  *   <li>Si algún paso falla, se registra exactamente dónde y se recomienda
  *       re-ejecutar el ETL completo.</li>
  * </ol>
@@ -45,8 +45,8 @@ public class EtlService {
      * Fases:
      * <ol>
      *   <li>Limpieza de CSVs anteriores</li>
-     *   <li>Exportación SQL Server → CSV (collections, departments, budgets)</li>
-     *   <li>Importación CSV → DuckDB (collections, departments, budgets)</li>
+     *   <li>Exportación SQL Server → CSV (collections, departments, budgets, contracts)</li>
+     *   <li>Importación CSV → DuckDB (collections, departments, budgets, contracts)</li>
      * </ol>
      *
      * @throws RuntimeException si alguna fase falla (el mensaje indica cuál
@@ -65,6 +65,7 @@ public class EtlService {
             exportService.exportCollectionsToCsv();
             exportService.exportDepartmentsToCsv();
             exportService.exportBudgetsToCsv();
+            exportService.exportContractsToCsv();
             log.info("ETL fase 1/2: exportación completada");
         } catch (SQLException e) {
             long elapsed = System.currentTimeMillis() - start;
@@ -83,6 +84,7 @@ public class EtlService {
             importService.loadCollectionsCsv();
             importService.loadDepartmentsCsv();
             importService.loadBudgetsCsv();
+            importService.loadContractsCsv();
             log.info("ETL fase 2/2: importación completada");
         } catch (SQLException e) {
             long elapsed = System.currentTimeMillis() - start;

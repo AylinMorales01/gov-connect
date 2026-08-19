@@ -1,11 +1,18 @@
 package com.govconnect.analytics.controller;
 
+import com.govconnect.analytics.dto.ConceptBreakdownResponse;
+import com.govconnect.analytics.dto.ContractDepartmentBreakdownResponse;
+import com.govconnect.analytics.dto.ContractStatusBreakdownResponse;
 import com.govconnect.analytics.dto.DepartmentRankingResponse;
 import com.govconnect.analytics.dto.FinancialOverviewResponse;
 import com.govconnect.analytics.dto.MonthlyTrendDto;
+import com.govconnect.analytics.dto.PaymentMethodBreakdownResponse;
+import com.govconnect.analytics.dto.TopContractorResponse;
 import com.govconnect.analytics.etl.EtlAsyncService;
 import com.govconnect.analytics.etl.EtlTask;
 import com.govconnect.analytics.etl.EtlTaskManager;
+import com.govconnect.analytics.service.CollectionsBreakdownService;
+import com.govconnect.analytics.service.ContractAnalyticsService;
 import com.govconnect.analytics.service.DepartmentRankingService;
 import com.govconnect.analytics.service.DuckDbHealthService;
 import com.govconnect.analytics.service.FinancialOverviewService;
@@ -40,6 +47,8 @@ public class AnalyticsController {
     private final TrendAnalyticsService trendService;
     private final FinancialOverviewService overviewService;
     private final DepartmentRankingService rankingService;
+    private final CollectionsBreakdownService breakdownService;
+    private final ContractAnalyticsService contractAnalyticsService;
 
     @Operation(summary = "Verificar conexión a DuckDB", description = "Prueba la conexión a la base de datos analítica DuckDB.")
     @GetMapping("/health")
@@ -100,6 +109,61 @@ public class AnalyticsController {
                 ApiResponse.success(
                         ApiMessages.ANALYTICS_DEPARTMENT_RANKING_SUCCESS,
                         rankingService.getDepartmentRanking()
+                )
+        );
+    }
+
+    @Operation(summary = "Desglose por concepto", description = "Devuelve el recaudo agregado por concepto desde DuckDB.")
+    @GetMapping("/collections-by-concept")
+    public ResponseEntity<ApiResponse<List<ConceptBreakdownResponse>>> getCollectionsByConcept() throws SQLException {
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        ApiMessages.ANALYTICS_CONCEPT_BREAKDOWN_SUCCESS,
+                        breakdownService.getByConcept()
+                )
+        );
+    }
+
+    @Operation(summary = "Desglose por método de pago", description = "Devuelve el recaudo agregado por método de pago desde DuckDB.")
+    @GetMapping("/collections-by-payment-method")
+    public ResponseEntity<ApiResponse<List<PaymentMethodBreakdownResponse>>> getCollectionsByPaymentMethod() throws SQLException {
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        ApiMessages.ANALYTICS_PAYMENT_METHOD_BREAKDOWN_SUCCESS,
+                        breakdownService.getByPaymentMethod()
+                )
+        );
+    }
+
+    @Operation(summary = "Contratos por estado", description = "Devuelve el valor total y la cantidad de contratos agrupados por estado desde DuckDB.")
+    @GetMapping("/contracts-by-status")
+    public ResponseEntity<ApiResponse<List<ContractStatusBreakdownResponse>>> getContractsByStatus() throws SQLException {
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        ApiMessages.ANALYTICS_CONTRACTS_BY_STATUS_SUCCESS,
+                        contractAnalyticsService.getByStatus()
+                )
+        );
+    }
+
+    @Operation(summary = "Valor contratado por dependencia", description = "Devuelve el valor total contratado agrupado por dependencia desde DuckDB.")
+    @GetMapping("/contracts-value-by-department")
+    public ResponseEntity<ApiResponse<List<ContractDepartmentBreakdownResponse>>> getContractsValueByDepartment() throws SQLException {
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        ApiMessages.ANALYTICS_CONTRACTS_BY_DEPARTMENT_SUCCESS,
+                        contractAnalyticsService.getByDepartment()
+                )
+        );
+    }
+
+    @Operation(summary = "Top contratistas", description = "Devuelve los contratistas con mayor valor total contratado desde DuckDB.")
+    @GetMapping("/top-contractors")
+    public ResponseEntity<ApiResponse<List<TopContractorResponse>>> getTopContractors() throws SQLException {
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        ApiMessages.ANALYTICS_TOP_CONTRACTORS_SUCCESS,
+                        contractAnalyticsService.getTopContractors()
                 )
         );
     }
