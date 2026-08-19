@@ -1,11 +1,9 @@
 import { Box, Typography, CircularProgress, Alert, Grid } from '@mui/material';
 import axios from 'axios';
 import { useDashboard } from '../hooks/useDashboard';
-import { useMonthlyTrend } from '../hooks/useMonthlyTrend';
 import DashboardCard from '../components/cards/DashboardCard';
 
-import MonthlyTrendChart from '../components/charts/MonthlyTrendChart';
-import DepartmentRankingTable from '../components/tables/DepartmentRankingTable';
+import BudgetExecutionChart from '../components/charts/BudgetExecutionChart';
 import ExpiringContractsList from '../components/tables/ExpiringContractsList';
 
 // Íconos
@@ -39,7 +37,6 @@ function getErrorMessage(error: unknown): string {
 
 export default function DashboardPage() {
     const { data, isLoading, isError, error } = useDashboard();
-    const trend = useMonthlyTrend();
 
     if (isLoading) {
         return (
@@ -107,17 +104,9 @@ export default function DashboardPage() {
                     />
                 </Grid>
 
-                {/* === FILA DE GRÁFICA PRINCIPAL Y RANKING (Grid Mejorado) === */}
-                <Grid size={{ xs: 12, md: 8 }}>
-                    <MonthlyTrendChart
-                        data={trend.data ?? []}
-                        loading={trend.isLoading}
-                        error={trend.isError}
-                    />
-                </Grid>
-
-                <Grid size={{ xs: 12, md: 4 }}>
-                    <DepartmentRankingTable />
+                {/* === FILA PRINCIPAL: EJECUCIÓN PRESUPUESTAL POR DEPENDENCIA === */}
+                <Grid size={{ xs: 12 }}>
+                    <BudgetExecutionChart />
                 </Grid>
 
                 {/* === FILA INFERIOR: CONTRATOS PRÓXIMOS A VENCER === */}

@@ -1,8 +1,13 @@
 import { api } from './axios';
-import type { DashboardSummary, ExpiringContractItem, AutomationLogItem } from '../types/dashboard';
+import type { DashboardSummary, ExpiringContractItem, AutomationLogItem, BudgetExecutionItem } from '../types/dashboard';
 
 export const getDashboardSummary = async (): Promise<DashboardSummary> => {
     const response = await api.get<{ data: DashboardSummary }>('/dashboard/summary');
+    return response.data.data;
+};
+
+export const getBudgetExecution = async (): Promise<BudgetExecutionItem[]> => {
+    const response = await api.get<{ data: BudgetExecutionItem[] }>('/dashboard/budget-execution');
     return response.data.data;
 };
 
