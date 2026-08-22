@@ -40,9 +40,12 @@ IF OBJECT_ID(N'dbo.contracts', N'U') IS NULL
 BEGIN
     CREATE TABLE contracts (
         id              BIGINT IDENTITY(1,1) PRIMARY KEY,
-        contract_number VARCHAR(30)   NOT NULL UNIQUE,
-        contractor_name VARCHAR(150)  NOT NULL,
-        object          VARCHAR(255)  NOT NULL,
+        -- Dimensionadas para el export de SECOP II: objetos de hasta 500
+        -- caracteres y referencias de hasta 40 (ver 08-secop-columns-migration.sql).
+        contract_number NVARCHAR(50)  NOT NULL
+            CONSTRAINT UQ_CONTRACT_NUMBER UNIQUE,
+        contractor_name NVARCHAR(150) NOT NULL,
+        object          NVARCHAR(500) NOT NULL,
         contract_value  DECIMAL(18,2) NOT NULL,
         start_date      DATE          NOT NULL,
         end_date        DATE          NOT NULL,

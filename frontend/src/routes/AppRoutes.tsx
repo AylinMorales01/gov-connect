@@ -4,6 +4,7 @@ import DashboardPage from '../pages/DashboardPage';
 import AnalyticsPage from '../pages/AnalyticsPage';
 import ContractsPage from '../pages/ContractsPage';
 import AutomationPage from '../pages/AutomationPage';
+import IngestionPage from '../pages/IngestionPage';
 import LoginPage from '../pages/LoginPage';
 import ForbiddenPage from '../pages/ForbiddenPage';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
@@ -24,6 +25,7 @@ export default function AppRoutes() {
                         {/* ADMIN exclusivo */}
                         <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
                             <Route path="/" element={<DashboardPage />} />
+                            <Route path="/ingestion" element={<IngestionPage />} />
                         </Route>
 
                         {/* USER o ADMIN */}

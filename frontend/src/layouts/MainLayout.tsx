@@ -24,6 +24,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
 import DescriptionIcon from '@mui/icons-material/Description';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
 import LogoutIcon from '@mui/icons-material/Logout';
 import TimerOutlinedIcon from '@mui/icons-material/TimerOutlined';
 import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined';
@@ -45,6 +46,7 @@ const allNavItems: NavItem[] = [
     { label: 'Dashboard', path: '/', icon: <DashboardIcon />, requiredRole: 'ADMIN' },
     { label: 'Analytics', path: '/analytics', icon: <AnalyticsIcon /> },
     { label: 'Contratos', path: '/contracts', icon: <DescriptionIcon /> },
+    { label: 'Importación', path: '/ingestion', icon: <UploadFileIcon />, requiredRole: 'ADMIN' },
     { label: 'Automatización', path: '/automation', icon: <AutorenewIcon /> },
 ];
 
@@ -144,7 +146,7 @@ export default function MainLayout() {
                 sx={{
                     width: drawerWidth,
                     flexShrink: 0,
-                    [`& .MuiDrawer-paper`]: {
+                    ['& .MuiDrawer-paper']: {
                         width: drawerWidth,
                         boxSizing: 'border-box',
                     },

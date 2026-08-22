@@ -6,4 +6,5 @@ INSERT INTO departments (code, name, description) VALUES
       ('INF', 'Infraestructura', 'Secretaría de Infraestructura y Obras'),
       ('GOB', 'Gobierno', 'Secretaría de Gobierno y Convivencia'),
       ('SOC', 'Desarrollo Social', 'Secretaría de Desarrollo Social y Comunitario'),
-      ('CUL', 'Cultura', 'Secretaría de Cultura y Turismo');
+      ('CUL', 'Cultura', 'Secretaría de Cultura y Turismo'),
+      ('SIN', 'Sin asignar', 'Respaldo para entidades del export no reconocidas');

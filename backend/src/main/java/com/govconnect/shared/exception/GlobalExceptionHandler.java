@@ -132,6 +132,17 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Captura errores de ingesta de CSV (archivo vacío, columnas faltantes o CSV malformado).
+     */
+    @ExceptionHandler(CsvImportException.class)
+    public ResponseEntity<ApiResponse<Void>> handleCsvImport(CsvImportException ex) {
+        log.warn("Error de ingesta CSV: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
+    /**
      * Captura errores de validación de Beans ({@code @Valid} / {@code @Validated}).
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
