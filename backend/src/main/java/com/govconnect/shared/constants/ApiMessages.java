@@ -31,6 +31,9 @@ public final class ApiMessages {
     public static final String AUTOMATION_LOGS_HISTORY_SUCCESS =
             "Historial de automatizaciones obtenido correctamente";
 
+    public static final String EXPIRING_CONTRACTS_ALERT_RUN =
+            "Alerta de contratos por vencer ejecutada correctamente";
+
     // ── Analytics ──────────────────────────────────────────
     public static final String ANALYTICS_HEALTH_SUCCESS =
             "DuckDB conectado correctamente";
@@ -80,6 +83,19 @@ public final class ApiMessages {
 
     public static final String AUTH_FORBIDDEN =
             "No tiene permisos suficientes para acceder a este recurso.";
+
+    // ── Ingestion ──────────────────────────────────────────
+    public static final String INGESTION_CONTRACTS_STARTED =
+            "Importación de contratos encolada correctamente";
+
+    public static final String INGESTION_BUDGETS_STARTED =
+            "Importación de presupuestos encolada correctamente";
+
+    public static final String INGESTION_COLLECTIONS_STARTED =
+            "Importación de recaudos encolada correctamente";
+
+    public static final String INGESTION_STATUS_SUCCESS =
+            "Estado de la importación obtenido correctamente";
 
     // ── Errores (usados por GlobalExceptionHandler) ─────────
     public static final String ERROR_NOT_FOUND =
