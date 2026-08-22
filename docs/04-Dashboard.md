@@ -1,27 +1,19 @@
 # Dashboard Ejecutivo
 
-El Dashboard representa el principal módulo funcional del sistema.
+Principal módulo funcional. Cuatro indicadores (rutas bajo `/api/v1/dashboard`):
 
-Actualmente implementa cuatro indicadores.
+| Indicador | Ruta | Descripción |
+|---|---|---|
+| Summary | `GET /summary` | Resumen ejecutivo |
+| Monthly Collections | `GET /monthly-collections` | Recaudos mensuales |
+| Contracts Expiring | `GET /expiring-contracts` | Contratos próximos a vencer |
+| Budget Execution | `GET /budget-execution` | Ejecución presupuestal por dependencia |
 
-## Summary
-
-Resumen ejecutivo.
-
-## Monthly Collections
-
-Histórico mensual de recaudos.
-
-## Contracts Expiring
-
-Contratos próximos a vencer.
-
-## Budget Execution
-
-Ejecución presupuestal por dependencia.
+El Dashboard es exclusivo del rol **ADMIN**: el backend lo exige en `SecurityConfig`
+(`hasRole("ADMIN")`) y el frontend en `ProtectedRoute`.
 
 ---
 
 ## Objetivo
 
-Brindar información ejecutiva en tiempo real para apoyar la toma de decisiones.
+Brindar información ejecutiva para apoyar la toma de decisiones.

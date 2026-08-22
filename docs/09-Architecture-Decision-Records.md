@@ -31,7 +31,7 @@ Se seleccionó Java 21 como versión principal del proyecto.
 - Uso de Records.
 - Mejor rendimiento.
 - Sintaxis moderna.
-- Compatibilidad con Spring Boot 3.
+- Compatibilidad con Spring Boot 4.x.
 
 ---
 
@@ -76,7 +76,7 @@ Implementar toda la lógica SQL dentro del backend aumenta el acoplamiento y dif
 
 ### Decisión
 
-Toda la información del Dashboard será obtenida mediante Views.
+Toda la información del Dashboard se obtiene mediante Views.
 
 ### Justificación
 
@@ -97,7 +97,7 @@ Los DTO únicamente transportan información.
 
 ### Decisión
 
-Todos los DTO serán implementados utilizando Records.
+Todos los DTO se implementan con Records.
 
 ### Justificación
 
@@ -112,14 +112,13 @@ Todos los DTO serán implementados utilizando Records.
 
 ## Respuesta estándar de la API
 
-
 ### Contexto
 
 Cada endpoint devolvía estructuras diferentes.
 
 ### Decisión
 
-Crear ApiResponse<T> como contrato único.
+Crear `ApiResponse<T>` como contrato único.
 
 ### Justificación
 
@@ -134,7 +133,6 @@ Crear ApiResponse<T> como contrato único.
 
 ## Arquitectura modular
 
-
 ### Decisión
 
 Dividir el sistema en módulos independientes.
@@ -142,14 +140,12 @@ Dividir el sistema en módulos independientes.
 ### Módulos actuales
 
 - dashboard
-- shared
-
-### Módulos futuros
-
 - analytics
+- contracts
+- ingestion
 - automation
 - auth
-- reports
+- shared
 
 ### Justificación
 
@@ -162,9 +158,7 @@ Dividir el sistema en módulos independientes.
 
 # ADR-007
 
-## DuckDB como motor analítico
-
-
+## DuckDB como motor analítico (doble base de datos)
 
 ### Contexto
 
@@ -176,9 +170,8 @@ Las consultas agregadas complejas pueden impactar el rendimiento del sistema tra
 
 ### Decisión
 
-Utilizar DuckDB exclusivamente como motor analítico.
-
-SQL Server continuará siendo la base de datos operacional.
+Utilizar DuckDB exclusivamente como motor analítico; SQL Server continúa como base operacional.
+Ambas se sincronizan mediante un ETL.
 
 ### Justificación
 
@@ -193,11 +186,53 @@ SQL Server continuará siendo la base de datos operacional.
 
 ## Arquitectura preparada para crecimiento
 
-
 ### Decisión
 
 Priorizar una arquitectura preparada para crecer antes de incorporar nuevas funcionalidades.
 
 ### Justificación
 
-Esto permitirá integrar nuevos módulos sin modificar la estructura existente del proyecto.
+Permite integrar nuevos módulos sin modificar la estructura existente.
+
+---
+
+# ADR-009
+
+## Autenticación JWT con cookies HttpOnly
+
+### Contexto
+
+El sistema requería autenticación con roles (`ADMIN`/`USER`) sin exponer tokens al JavaScript del navegador.
+
+### Decisión
+
+Los tokens JWT viajan en **cookies HttpOnly** (`access_token`, `refresh_token`) con `SameSite=Lax`,
+en lugar de en el cuerpo de la respuesta o en `localStorage`.
+
+### Justificación
+
+- El token no es accesible por XSS (HttpOnly).
+- `SameSite=Lax` mitiga CSRF sin tokens adicionales.
+- Refresh token rotativo con invalidación server-side vía `tokenVersion`.
+- Rate limiting en login (5 intentos/minuto por IP).
+
+---
+
+# ADR-010
+
+## ETL asíncrono con taskId
+
+### Contexto
+
+El ETL (SQL Server → CSV → DuckDB) puede tardar y bloquear una petición síncrona.
+
+### Decisión
+
+El ETL se ejecuta de forma **asíncrona**: `POST /analytics/etl/run` devuelve un `taskId`
+y el estado se consulta en `GET /analytics/etl/status/{taskId}`.
+
+### Justificación
+
+- No bloquea al cliente.
+- Permite monitorear el progreso.
+- Prepara el terreno para automatizaciones periódicas.

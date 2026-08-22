@@ -12,31 +12,30 @@
 
 ## API
 
-Todas las respuestas utilizan ApiResponse<T>
+Todas las respuestas utilizan `ApiResponse<T>`:
 
-Ejemplo:
-
+```json
 {
-success,
-message,
-timestamp,
-data
+  "success": true,
+  "message": "...",
+  "timestamp": "...",
+  "data": {}
 }
+```
 
 ---
 
 ## Logging
 
-Se utiliza SLF4J.
+Se utiliza SLF4J (`@Slf4j`).
 
-No registrar información sensible.
-
-Registrar únicamente eventos relevantes.
+- No registrar información sensible.
+- Registrar únicamente eventos relevantes.
 
 ---
 
 ## Base de Datos
 
-Las consultas analíticas se realizan mediante Views.
-
-No se realizan consultas complejas directamente desde Java.
+- El Dashboard consulta **vistas** de SQL Server (`vw_*`); nunca tablas directamente.
+- El módulo Analytics consulta **DuckDB** mediante JDBC.
+- No se escriben consultas complejas dentro de los Services.
