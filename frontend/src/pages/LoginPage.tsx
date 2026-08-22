@@ -15,7 +15,7 @@ import axios from 'axios';
 import { useAuth } from '../hooks/useAuth';
 
 export default function LoginPage() {
-    const { login, isAuthenticated } = useAuth();
+    const { login, isAuthenticated, isAdmin } = useAuth();
     const navigate = useNavigate();
 
     const [username, setUsername] = useState('');
@@ -23,12 +23,13 @@ export default function LoginPage() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // Si ya está autenticado, redirigir al dashboard
+    // Si ya está autenticado, redirigir según el rol:
+    // ADMIN → Dashboard (/), USER → Analytics.
     useEffect(() => {
         if (isAuthenticated) {
-            navigate('/', { replace: true });
+            navigate(isAdmin ? '/' : '/analytics', { replace: true });
         }
-    }, [isAuthenticated, navigate]);
+    }, [isAuthenticated, isAdmin, navigate]);
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -42,8 +43,8 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
-            await login(username.trim(), password);
-            navigate('/', { replace: true });
+            const role = await login(username.trim(), password);
+            navigate(role === 'ADMIN' ? '/' : '/analytics', { replace: true });
         } catch (err: unknown) {
             if (axios.isAxiosError(err)) {
                 if (err.response?.status === 401) {

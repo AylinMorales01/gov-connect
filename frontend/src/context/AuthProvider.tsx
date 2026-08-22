@@ -1,5 +1,4 @@
 import {
-    createContext,
     useState,
     useCallback,
     useEffect,
@@ -7,33 +6,7 @@ import {
 } from 'react';
 import { loginRequest, logoutRequest, getMe } from '../api/authApi';
 import { setOnTokenRefreshed, setOnSessionExpired } from '../api/axios';
-
-// ── Tipos ──────────────────────────────────────────────
-
-interface AuthState {
-    username: string | null;
-    role: string | null;
-    /** Timestamp (ms) en que expira el access token, o null si se desconoce. */
-    tokenExpiresAt: number | null;
-}
-
-export interface AuthContextType extends AuthState {
-    isAuthenticated: boolean;
-    /** Verdadero mientras se restaura la sesión al iniciar la app. */
-    initializing: boolean;
-    /** Verdadero si el usuario tiene rol ADMIN. */
-    isAdmin: boolean;
-    /** Verifica si el usuario tiene un rol específico. */
-    hasRole: (role: string) => boolean;
-    /** Minutos restantes antes de que expire la sesión (null si no hay sesión). */
-    sessionMinutesLeft: number | null;
-    login: (username: string, password: string) => Promise<void>;
-    logout: () => Promise<void>;
-}
-
-// ── Context ────────────────────────────────────────────
-
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import { AuthContext, type AuthState } from './authContext';
 
 // ── Provider ───────────────────────────────────────────
 
@@ -44,6 +17,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         tokenExpiresAt: null,
     });
     const [initializing, setInitializing] = useState(true);
+    const [now, setNow] = useState(0);
 
     const isAuthenticated = auth.username !== null;
     const isAdmin = auth.role === 'ADMIN';
@@ -56,10 +30,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         [auth.role]
     );
 
+    // Reloj para el tiempo restante de sesión. Se mantiene en estado para no
+    // llamar a Date.now() (función impura) durante el render; se refresca cada
+    // 30 s mientras hay sesión para que la advertencia de expiración avance sola.
+    useEffect(() => {
+        if (auth.tokenExpiresAt == null) {
+            return;
+        }
+        const id = setInterval(() => setNow(Date.now()), 30_000);
+        return () => clearInterval(id);
+    }, [auth.tokenExpiresAt]);
+
     // Tiempo restante de sesión (para advertencia de expiración)
     const sessionMinutesLeft =
         auth.tokenExpiresAt != null
-            ? Math.max(0, Math.round((auth.tokenExpiresAt - Date.now()) / 60000))
+            ? Math.max(0, Math.round((auth.tokenExpiresAt - now) / 60000))
             : null;
 
     // ── Registrar callbacks para el interceptor de axios ──
@@ -115,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // ── Login ──────────────────────────────────────────
 
-    const login = useCallback(async (username: string, password: string) => {
+    const login = useCallback(async (username: string, password: string): Promise<string> => {
         const { role, expiresIn } = await loginRequest(username, password);
 
         setAuth({
@@ -123,6 +108,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             role,
             tokenExpiresAt: Date.now() + expiresIn * 1000,
         });
+
+        return role;
     }, []);
 
     // ── Logout ──────────────────────────────────────────
