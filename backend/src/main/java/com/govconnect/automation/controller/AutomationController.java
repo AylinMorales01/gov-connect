@@ -2,7 +2,9 @@ package com.govconnect.automation.controller;
 
 import com.govconnect.automation.dto.AutomationLogRequest;
 import com.govconnect.automation.dto.AutomationLogResponse;
+import com.govconnect.automation.dto.ExpiringContractsAlertResponse;
 import com.govconnect.automation.service.AutomationLogService;
+import com.govconnect.automation.service.ExpiringContractsAlertService;
 import com.govconnect.shared.constants.ApiMessages;
 import com.govconnect.shared.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -30,6 +32,22 @@ import java.util.List;
 public class AutomationController {
 
     private final AutomationLogService service;
+    private final ExpiringContractsAlertService alertService;
+
+    @PostMapping("/expiring-contracts/alert")
+    @Operation(
+            summary = "Ejecuta la alerta de contratos por vencer",
+            description = "Detecta los contratos activos por vencer y envía la alerta por correo a los destinatarios configurados. Devuelve un resumen con contratos encontrados y correos enviados."
+    )
+    public ResponseEntity<ApiResponse<ExpiringContractsAlertResponse>> runExpiringContractsAlert() {
+        log.info("Ejecutando alerta de contratos por vencer (disparo manual)");
+
+        ExpiringContractsAlertResponse result = alertService.runAlert();
+
+        return ResponseEntity.ok(
+                ApiResponse.success(ApiMessages.EXPIRING_CONTRACTS_ALERT_RUN, result)
+        );
+    }
 
     @PostMapping("/logs")
     @Operation(
