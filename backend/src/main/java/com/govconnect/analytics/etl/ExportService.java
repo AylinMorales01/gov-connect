@@ -221,16 +221,22 @@ public class ExportService {
     /**
      * Sanitiza un valor de texto para CSV.
      * <p>
-     * Reemplaza comas por espacios y escapa comillas dobles
-     * duplicándolas (estándar CSV RFC 4180).
+     * Reemplaza comas por espacios, escapa comillas dobles duplicándolas
+     * (estándar CSV RFC 4180) y elimina los saltos de línea. Los objetos de
+     * contrato traen saltos de línea (p. ej. en la dirección de ejecución), y
+     * como el export escribe un registro por línea física, sin esto un salto
+     * partiría la fila y {@code read_csv_auto} de DuckDB fallaría.
      * </p>
      */
-    private String clean(String value) {
+    static String clean(String value) {
         if (value == null) {
             return "";
         }
         return value
                 .replace("\"", "\"\"")
-                .replace(",", " ");
+                .replace(",", " ")
+                .replace("\r\n", "\n")
+                .replace('\r', ' ')
+                .replace('\n', ' ');
     }
 }

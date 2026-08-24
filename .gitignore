@@ -11,6 +11,11 @@
 *.jks
 *.keystore
 *.pfx
+
+# Cookies de sesión y volcados locales sensibles
+cookies.txt
+*.cookies.txt
+
 **/application-local.yaml
 **/application-local.yml
 

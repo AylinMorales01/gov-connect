@@ -74,7 +74,9 @@ public class SecurityConfig {
 
                     // Endpoints exclusivos de ADMIN
                     auth.requestMatchers(
-                            "/api/v1/dashboard/**"
+                            "/api/v1/dashboard/**",
+                            "/api/v1/ingestion/**",
+                            "/api/v1/automation/expiring-contracts/alert"
                     ).hasRole("ADMIN");
 
                     // Endpoints para usuarios autenticados (USER o ADMIN)

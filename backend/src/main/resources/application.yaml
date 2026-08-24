@@ -30,6 +30,30 @@ spring:
       hibernate:
         format_sql: false
 
+  # ── Correo (alerta de contratos por vencer) ──────────
+  # El host vacío significa "SMTP no configurado": la alerta registra el error
+  # en automation_logs sin detener la aplicación.
+  mail:
+    host: ${SMTP_HOST:}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    protocol: smtp
+    properties:
+      mail:
+        smtp:
+          auth: ${SMTP_AUTH:true}
+          starttls:
+            enable: ${SMTP_STARTTLS:true}
+
+  # ── Subida de archivos (ingesta CSV) ────────────────
+  # Límites configurables por entorno. El default de Spring es 10 MB, insuficiente
+  # para export de SECOP II de gran volumen.
+  servlet:
+    multipart:
+      max-file-size: ${MULTIPART_MAX_FILE_SIZE:50MB}
+      max-request-size: ${MULTIPART_MAX_REQUEST_SIZE:55MB}
+
 management:
   endpoints:
     web:
@@ -64,6 +88,19 @@ app:
   # true => cookies marcadas Secure (solo se envían por HTTPS).
   # Debe ser true en producción.
   cookie-secure: ${COOKIE_SECURE:false}
+
+  # ── Alerta de contratos por vencer ─────────────────────
+  alert:
+    expiring-contracts:
+      # true => habilita la alerta automática programada.
+      enabled: ${ALERT_EXPIRING_ENABLED:true}
+      # Destinatarios separados por coma.
+      recipients: ${ALERT_EXPIRING_RECIPIENTS:}
+      # Ventana de días para considerar un contrato "por vencer".
+      days: ${ALERT_EXPIRING_DAYS:30}
+      from: ${ALERT_EXPIRING_FROM:no-reply@govconnect.com}
+      # Programación (cron Spring): de lunes a viernes a las 7:00 AM.
+      cron: ${ALERT_EXPIRING_CRON:0 0 7 * * MON-FRI}
 
 # ── Logging base (sobreescribible por perfil) ────────
 logging:

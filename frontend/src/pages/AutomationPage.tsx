@@ -38,6 +38,9 @@ import type { AutomationLogItem } from '../types/dashboard';
 
 type StatusFilter = 'ALL' | 'SUCCESS' | 'ERROR';
 
+/** Referencia estable para cuando aún no hay datos, evita recrear el array en cada render. */
+const EMPTY_LOGS: AutomationLogItem[] = [];
+
 /**
  * Formatea una fecha (ISO string o timestamp ms) a formato local.
  * @param dateOrTs fecha ISO (string) o timestamp Unix en milisegundos (number).
@@ -104,7 +107,7 @@ export default function AutomationPage() {
     const { data, isLoading, isError, isFetching, refetch, dataUpdatedAt } = useAutomationLogs();
 
     // ── Raw data from API (siempre para las tarjetas resumen) ──
-    const allLogs: AutomationLogItem[] = data ?? [];
+    const allLogs: AutomationLogItem[] = data ?? EMPTY_LOGS;
     const total = allLogs.length;
     const successful = allLogs.filter((log) => log.status === 'SUCCESS').length;
     const errorCount = allLogs.filter((log) => log.status === 'ERROR').length;

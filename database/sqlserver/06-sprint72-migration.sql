@@ -1,5 +1,5 @@
 -- ==========================================
--- Migración Sprint 7.2: Agregar columna role
+-- Agregar columna role
 -- Ejecutar solo si la columna no existe aún.
 -- ==========================================
 IF NOT EXISTS (
@@ -37,7 +37,7 @@ BEGIN
         'admin',
         'admin@govconnect.com',
         -- BCrypt hash de "password" (10 rounds)
-        '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW',
+        '$2a$10$ZJFMhy0DqVO2BEj/Dhf2teZJG8vk/O1yVFHPeHqcxjN9xtirrg6C.',
         'Administrador del Sistema',
         'ADMIN',
         1
@@ -60,7 +60,7 @@ BEGIN
         'usuario',
         'usuario@govconnect.com',
         -- BCrypt hash de "password" (10 rounds)
-        '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW',
+        '$2a$10$ZJFMhy0DqVO2BEj/Dhf2teZJG8vk/O1yVFHPeHqcxjN9xtirrg6C.',
         'Usuario de Prueba',
         'USER',
         1

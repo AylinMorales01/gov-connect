@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -14,6 +15,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -88,6 +90,22 @@ class SecurityIntegrationTest {
                     .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.success").value(false));
         }
+
+        @Test
+        @DisplayName("POST /api/v1/automation/expiring-contracts/alert requiere autenticación")
+        void expiringContractsAlertRequiresAuth() throws Exception {
+            mockMvc.perform(post("/api/v1/automation/expiring-contracts/alert"))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("POST /api/v1/ingestion/contracts requiere autenticación")
+        void ingestionContractsRequiresAuth() throws Exception {
+            mockMvc.perform(multipart("/api/v1/ingestion/contracts").file(
+                            new MockMultipartFile("file", "x.csv", "text/csv", "a,b\n1,2\n".getBytes())))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.success").value(false));
+        }
     }
 
     // ── 403 Forbidden ───────────────────────────────────
@@ -120,6 +138,24 @@ class SecurityIntegrationTest {
             mockMvc.perform(get("/api/v1/dashboard/budget-execution"))
                     .andExpect(status().isForbidden());
         }
+
+        @Test
+        @DisplayName("USER no puede importar contratos (ingestion es ADMIN)")
+        @WithMockUser(username = "testuser", roles = {"USER"})
+        void userCannotIngestContracts() throws Exception {
+            mockMvc.perform(multipart("/api/v1/ingestion/contracts").file(
+                            new MockMultipartFile("file", "x.csv", "text/csv", "a,b\n1,2\n".getBytes())))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.success").value(false));
+        }
+
+        @Test
+        @DisplayName("USER no puede disparar la alerta de contratos por vencer (ADMIN)")
+        @WithMockUser(username = "testuser", roles = {"USER"})
+        void userCannotRunExpiringContractsAlert() throws Exception {
+            mockMvc.perform(post("/api/v1/automation/expiring-contracts/alert"))
+                    .andExpect(status().isForbidden());
+        }
     }
 
     // ── Acceso ADMIN ────────────────────────────────────
@@ -145,6 +181,17 @@ class SecurityIntegrationTest {
             // El error 500 es porque la tabla automation_logs no existe en H2 (usa SQL nativo).
             mockMvc.perform(get("/api/v1/automation/logs"))
                     .andExpect(status().is5xxServerError()); // BD no disponible en test, pero auth OK
+        }
+
+        @Test
+        @DisplayName("ADMIN puede disparar la alerta de contratos por vencer")
+        @WithMockUser(username = "admin", roles = {"ADMIN"})
+        void adminCanRunExpiringContractsAlert() throws Exception {
+            // Sin destinatarios configurados el servicio devuelve un resumen sin enviar
+            // (200) sin tocar la base de datos, por lo que no requiere SQL Server.
+            mockMvc.perform(post("/api/v1/automation/expiring-contracts/alert"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true));
         }
     }
 

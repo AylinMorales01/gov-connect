@@ -1,0 +1,13 @@
+numero_contrato,contratista,objeto,valor,fecha_inicio,fecha_fin,estado,dependencia
+SECOP-2026-101,Consorcio Vial Norte,Mantenimiento de la malla vial del sector norte,850000000.00,2026-02-01,2026-08-24,En ejecución,INF
+SECOP-2026-102,Alimentos y Nutrición SAS,Suministro de alimentación escolar para instituciones oficiales,320000000.00,2026-01-15,2026-08-28,En ejecución,EDU
+SECOP-2026-103,Consorcio Salud Total,"Prestación de servicios de atención primaria, promoción y prevención",540000000.00,2026-03-02,2026-09-02,En ejecución,SAL
+SECOP-2026-104,Auditores Asociados Ltda,Auditoría financiera externa de la vigencia 2026,95000000.00,2026-04-01,2026-09-09,Celebrado,Hacienda
+SECOP-2026-105,Seguridad Ciudadana SAS,Operación del sistema de videovigilancia municipal,180000000.00,2026-03-15,2026-09-15,En ejecución,GOB
+SECOP-2026-106,Eventos y Producciones SAS,Realización de la agenda cultural de fin de año,"1.250.000.000,00",2026-05-04,2026-09-18,En ejecución,CUL
+SECOP-2026-107,Consultoría Urbana Ltda,"Estudios de viabilidad, diseño y consultoría urbana",210000000.00,2026-04-01,2026-11-30,En ejecución,PLA
+SECOP-2026-108,Fundación Comunidad Activa,Programa de atención integral a población vulnerable,275000000.00,2026-02-10,2026-12-31,En ejecución,SOC
+SECOP-2026-109,IT Servers Colombia,Soporte y mantenimiento de infraestructura tecnológica,120000000.00,2026-03-01,2026-09-05,Suspendido,INF
+SECOP-2026-110,Dotaciones Escolares SAS,Dotación de mobiliario para sedes educativas rurales,145000000.00,2026-01-20,2026-06-30,Liquidado,Educación
+SECOP-2026-111,Geodata Consultores,Actualización de la base catastral municipal,300000000.00,2026-01-05,2026-07-31,Terminado,HAC
+SECOP-2026-112,Medical Supplies SAS,Dotación de insumos médicos para servicios de urgencias,410000000.00,2026-06-01,2027-02-28,En ejecución,SAL

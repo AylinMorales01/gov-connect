@@ -1,44 +1,28 @@
 # Integración DuckDB
 
-DuckDB será utilizado como motor analítico.
+DuckDB es el motor analítico embebido. **No reemplaza** SQL Server (ADR-007).
 
-No reemplaza SQL Server.
+## SQL Server (operacional)
 
----
+Almacenamiento transaccional: CRUD y operaciones diarias.
 
-## SQL Server
+## DuckDB (analítico)
 
-Almacenamiento transaccional.
+KPIs, comparativos, tendencias y reportes.
 
-CRUD.
+Archivo: `database/analytics/analytics.duckdb` (ruta relativa al CWD del proceso).
 
-Operaciones diarias.
+## ETL (implementado, asíncrono)
 
----
+1. `EtlService.runFullEtl()` orquesta el proceso.
+2. `ExportService` vuelca `collections`, `departments`, `budgets` y `contracts` a CSV en `exports/`.
+3. `ImportService` carga cada CSV con `read_csv_auto` y `CREATE OR REPLACE TABLE`.
 
-## DuckDB
-
-Consultas analíticas.
-
-KPIs.
-
-Comparativos.
-
-Tendencias.
-
-Reportes.
-
----
+El ETL se dispara vía `POST /analytics/etl/run` y devuelve un `taskId`; el estado se
+consulta en `GET /analytics/etl/status/{taskId}`.
 
 ## Flujo
 
-
-    SQL Server
-    ↓
-    Proceso de sincronización
-    ↓
-    DuckDB
-    ↓
-    Analytics
-    ↓
-    Dashboard
+```
+SQL Server ──▶ exports/*.csv ──▶ DuckDB ──▶ Analytics ──▶ API / Dashboard
+```

@@ -1,32 +1,38 @@
 # Estructura del Proyecto
 
 ```
-src
-└── main
-    └── java
-        └── com.govconnect
+backend/src/main/java/com/govconnect
 
-            dashboard
-                controller
-                service
-                repository
-                dto
+    dashboard
+        controller / service / repository / dto
 
-            shared
-                config
-                constants
-                exception
-                response
+    analytics
+        controller / service / repository / dto / etl / config
+
+    contracts
+        controller / service / repository / dto
+
+    ingestion
+        controller / service / repository / dto / task / config
+
+    automation
+        controller / service / repository / dto / config
+
+    auth
+        controller / service / repository / dto / entity / security
+
+    shared
+        config / constants / csv / exception / response
 ```
 
 ---
 
 ## Convención
 
-Cada módulo debe contener únicamente las clases relacionadas con su responsabilidad.
+- Cada módulo contiene únicamente las clases de su responsabilidad.
+- No hay lógica de negocio en los Controllers.
+- La interacción con datos se hace desde Repository.
+- Los DTO son Java Records inmutables.
 
-No se permite lógica de negocio dentro de los Controllers.
-
-Toda interacción con SQL Server se realiza desde Repository.
-
-Los DTO son inmutables utilizando Java Record.
+Frontend (ver `10-Frontend.md`): `frontend/src/` con layout feature-based
+(`api`, `components`, `context`, `hooks`, `pages`, `routes`, `types`, `utils`).
