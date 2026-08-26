@@ -133,7 +133,68 @@ cp .env.example .env
 
 Edita `.env` y completa las variables con tus valores (ver [Configuración](#configuración)).
 
-### 3. Crear la base de datos
+> Para Docker son obligatorias, como mínimo, `MSSQL_SA_PASSWORD` (contraseña fuerte del `sa` de SQL Server) y `JWT_SECRET` (clave de ≥32 caracteres).
+
+---
+
+### Opción A — Docker (recomendado)
+
+Levanta toda la infraestructura (SQL Server + inicialización de la BD + backend + frontend) con un solo comando. Requiere **Docker** (con el plugin *Compose* v2) instalado.
+
+**Desarrollo con hot reload** (Vite HMR en el frontend + Spring DevTools en el backend):
+
+```bash
+docker compose up --build
+```
+
+Compose carga `docker-compose.override.yml` automáticamente, por lo que este es el modo de desarrollo:
+
+- Frontend (Vite, HMR): `http://localhost:5173`
+- Backend / API: `http://localhost:8080/api/v1`
+- Swagger UI: `http://localhost:8080/swagger-ui`
+- Actuator: `http://localhost:8080/actuator/health`
+
+**Modo "prod-like"** (frontend compilado y servido por nginx, backend con el JAR):
+
+```bash
+docker compose -f docker-compose.yml up --build
+```
+
+- Frontend: `http://localhost` (puerto `FRONTEND_PORT`, default `80`)
+
+> En el primer arranque, el contenedor `db-init` crea la base `GOV_CONNECT_DB`, aplica el esquema (`01`–`08`), crea los usuarios de prueba y carga los datos demo (`SEED_DEMO=true` en `.env`). No necesitas ejecutar los scripts SQL a mano.
+
+**Usuarios de prueba** (solo desarrollo):
+
+| Usuario | Contraseña | Rol |
+|---|---|---|
+| `admin` | `password` | ADMIN (acceso completo) |
+| `usuario` | `password` | USER (sin acceso a `/dashboard`) |
+
+**Comandos útiles:**
+
+```bash
+docker compose ps                    # estado de los servicios
+docker compose logs -f backend       # logs del backend
+docker compose logs db-init          # ver si la inicialización de la BD terminó
+docker compose down                  # detener (conserva los datos)
+docker compose down -v               # detener y BORRAR volúmenes (BD y DuckDB)
+```
+
+**Notas:**
+
+- El primer `up --build` tarda: descarga la imagen de SQL Server y compila las imágenes. El arranque de SQL Server puede tardar 30–60 s; por eso el backend espera con `depends_on: service_healthy`.
+- La imagen de SQL Server 2022 es **amd64**. En Apple Silicon (M1/M2/M3) corre bajo emulación (Rosetta) y puede ser lenta o requerir una alternativa.
+- `docker/db-init/init.sh` es idempotente: si `GOV_CONNECT_DB` ya existe, no recrea la base.
+- En el modo prod-like (`-f docker-compose.yml`), la base SQL Server persiste en el volumen `sqlserver-data`, pero DuckDB (`DUCKDB_PATH`) y los CSV del ETL (`ETL_EXPORT_DIR`) viven en el filesystem efímero del contenedor. Para producción, monta esos dos paths en un volumen/plano persistente.
+- La contraseña `MSSQL_SA_PASSWORD` queda fijada en el volumen la primera vez que SQL Server arranca. Si la cambias en `.env` después, borra el volumen para que tome efecto: `docker compose down -v`.
+- Los usuarios `admin`/`usuario` y los datos demo son **solo para desarrollo**; elimínalos antes de exponer el entorno.
+
+---
+
+### Opción B — Sin Docker (instalación manual)
+
+#### 3. Crear la base de datos
 
 Ejecuta los scripts SQL en orden desde `database/sqlserver/`:
 
@@ -152,7 +213,7 @@ Ejecuta los scripts SQL en orden desde `database/sqlserver/`:
 
 (Opcional) Carga datos semilla de demostración desde `database/seed/`.
 
-### 4. Iniciar el backend
+#### 4. Iniciar el backend
 
 > **Importante**: ejecuta desde la **raíz del repositorio** (no desde `backend/`). Las rutas relativas de DuckDB (`database/analytics/…`) y de `exports/` dependen de ello.
 
@@ -164,7 +225,7 @@ Ejecuta los scripts SQL en orden desde `database/sqlserver/`:
 - Swagger UI: `http://localhost:8080/swagger-ui`
 - Actuator: `http://localhost:8080/actuator/health`
 
-### 5. Iniciar el frontend
+#### 5. Iniciar el frontend
 
 ```bash
 cd frontend
@@ -198,11 +259,16 @@ SMTP_HOST=
 SMTP_PORT=587
 SMTP_USERNAME=your_username
 SMTP_PASSWORD=your_password
+SMTP_AUTH=true
+SMTP_STARTTLS=true
 
 # Alerta programada
+# ⚠️ ALERT_EXPIRING_ENABLED solo controla el CRON; el disparo manual por API
+#    (POST /automation/expiring-contracts/alert) sigue activo aunque sea false.
 ALERT_EXPIRING_ENABLED=true
 ALERT_EXPIRING_RECIPIENTS=destinatario1@example.com,destinatario2@example.com
 ALERT_EXPIRING_DAYS=30
+ALERT_EXPIRING_FROM=no-reply@govconnect.com
 ALERT_EXPIRING_CRON=0 0 7 * * MON-FRI
 
 # Perfiles / entorno
@@ -213,6 +279,8 @@ SERVER_PORT=8080
 # Frontend
 VITE_API_URL=http://localhost:8080/api/v1
 ```
+
+> **Ejemplo SMTP (desarrollo)** — Mailtrap: `SMTP_HOST=sandbox.smtp.mailtrap.io`, `SMTP_PORT=2525`, `SMTP_USERNAME=<usuario>`, `SMTP_PASSWORD=<contraseña>`, `SMTP_AUTH=true`, `SMTP_STARTTLS=true`. Gmail (con *app password*): `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_AUTH=true`, `SMTP_STARTTLS=true`.
 
 ## API
 
@@ -247,13 +315,137 @@ El detalle completo de cada endpoint está en `docs/06-API.md` y en Swagger.
 CSV → SQL Server → ExportService (CSV) → exports/ → ImportService → DuckDB → Analytics API → Frontend
 ```
 
+## Ingesta de datos
+
+La ingesta importa datos operacionales desde CSV a **SQL Server**. Es **asíncrona**: cada
+`POST` devuelve `202 Accepted` con un `taskId` y el avance se sigue por `GET /ingestion/status/{taskId}`.
+Al terminar, dispara automáticamente el ETL para refrescar DuckDB (el `etlTaskId` aparece en el `summary`).
+
+Todos los endpoints requieren rol **ADMIN**:
+
+| Método | Ruta | CSV esperado |
+|---|---|---|
+| POST | `/ingestion/contracts` | `numero_contrato, contratista, objeto, valor, fecha_inicio, fecha_fin, estado, dependencia` |
+| POST | `/ingestion/budgets` | `dependencia, anio, asignado, ejecutado[, disponible]` |
+| POST | `/ingestion/collections` | `fecha, concepto, contribuyente, monto, medio_pago, dependencia` |
+| GET | `/ingestion/status/{taskId}` | Estado y resumen de una importación encolada |
+
+Ejemplo de subida de un CSV de contratos:
+
+```bash
+# 1) Login (guarda las cookies HttpOnly en un cookie jar)
+curl -c cookies.txt -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"password"}'
+
+# 2) Sube el CSV (campo multipart `file`)
+curl -b cookies.txt -X POST http://localhost:8080/api/v1/ingestion/contracts \
+  -F "file=@database/seed/contratos-secop-ejemplo.csv"
+
+# 3) Consulta el avance (reemplaza <taskId>)
+curl -b cookies.txt http://localhost:8080/api/v1/ingestion/status/<taskId>
+```
+
+La tarea expone `{ taskId, state, message, startedAt, completedAt, summary }`. En `COMPLETED`,
+`summary` es `{ totalRows, imported, updated, skipped, errors, etlTaskId }` (`errors` viene
+acotado a 500; el total de omitidas lo da `skipped`).
+
+**Contratos SECOP II**: la ingesta acepta las columnas propias del export real (alias como
+`referencia_del_contrato`, `proveedor_adjudicado`, `objeto_del_contrato`, …) y normaliza sus
+estados. El detalle completo —tabla de alias, estados y reglas de upsert/fallback— está en
+[`docs/06-API.md` → Ingestion → SECOP II](docs/06-API.md#secop-ii).
+
 ## Automatización
 
-- **Alerta de contratos por vencer**: detecta contratos `ACTIVE` que vencen en los próximos `days` días y envía un correo HTML a los destinatarios configurados. Se ejecuta por cron (`app.alert.expiring-contracts.cron`, por defecto lunes–viernes 7:00) o manualmente con `POST /automation/expiring-contracts/alert` (ADMIN). El envío se hace de forma nativa con **Spring Mail (SMTP)**.
+- **Alerta de contratos por vencer (G3)**: detecta contratos `ACTIVE` que vencen en los próximos `days` días y envía un correo HTML a los destinatarios configurados mediante **Spring Mail (SMTP)**.
+
+  **Cómo se dispara:**
+  - **Programado (cron):** lunes–viernes a las 7:00 por defecto (`app.alert.expiring-contracts.cron`). Solo corre si `ALERT_EXPIRING_ENABLED=true`; ponerlo en `false` desactiva **únicamente el cron**, no el disparo manual.
+  - **Manual (ADMIN):** `POST /api/v1/automation/expiring-contracts/alert`. No hay botón en la UI (la página *Automatización* solo muestra los logs); se dispara desde **Swagger** (`/swagger-ui`) o por `curl`:
+    ```bash
+    # 1) Login (guarda las cookies HttpOnly en un cookie jar)
+    curl -c cookies.txt -X POST http://localhost:8080/api/v1/auth/login \
+      -H "Content-Type: application/json" \
+      -d '{"username":"admin","password":"password"}'
+
+    # 2) Disparo manual de la alerta
+    curl -b cookies.txt -X POST http://localhost:8080/api/v1/automation/expiring-contracts/alert
+    ```
+
+  **Resultado** (siempre queda registrado en `automation_logs`, sin detener la app):
+  - Sin destinatarios → `SKIPPED`.
+  - `spring.mail.host` vacío (SMTP no configurado) → `ERROR`.
+  - Sin contratos por vencer → `SUCCESS` con mensaje "No hay contratos por vencer…".
+  - Envío correcto → `SUCCESS` con el número de correos enviados.
+
 - **Registro de ejecuciones**: cada ejecución queda registrada en `automation_logs` (estado `SUCCESS`/`ERROR`/`SKIPPED`, proceso, mensaje y tiempo). La SPA lo muestra en la página de *Automatización*.
 - **Integración futura**: los endpoints `POST /automation/logs` y `GET /automation/logs` son el punto de integración para registrar ejecuciones de orquestadores externos. Workflows tipo **n8n** podrían llegar a implementarse en el futuro llamando a estos endpoints, pero hoy no hay workflows n8n versionados en el repositorio.
 
-Si `spring.mail.host` está vacío o no hay destinatarios, la alerta registra el fallo en `automation_logs` sin detener la aplicación.
+## SMTP — correo de la alerta de contratos por vencer
+
+Para que el cron o el disparo manual envíen correo, el backend necesita un servidor SMTP. Si `SMTP_HOST` queda vacío, Spring no crea el `JavaMailSender` y la alerta registra `ERROR` en `automation_logs` sin enviar nada.
+
+### Configuración mínima
+
+En `.env` (o variables de entorno):
+
+```env
+# ── SMTP ──────────────────────────────────────────────
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=tu.correo@gmail.com
+SMTP_PASSWORD=tu_app_password
+SMTP_AUTH=true
+SMTP_STARTTLS=true
+
+# ── Alerta ────────────────────────────────────────────
+ALERT_EXPIRING_RECIPIENTS=tu.correo@gmail.com,otro@dominio.com
+ALERT_EXPIRING_FROM=tu.correo@gmail.com
+ALERT_EXPIRING_DAYS=30
+ALERT_EXPIRING_CRON=0 0 7 * * MON-FRI
+```
+
+Variables clave:
+
+| Variable | Rol |
+|---|---|
+| `SMTP_HOST` / `SMTP_PORT` | Servidor SMTP. `SMTP_HOST` vacío = correo deshabilitado. |
+| `SMTP_USERNAME` / `SMTP_PASSWORD` | Credenciales de autenticación en el SMTP. |
+| `SMTP_AUTH` / `SMTP_STARTTLS` | `true` para login y cifrado STARTTLS (puerto 587). |
+| `ALERT_EXPIRING_RECIPIENTS` | **A quién llega el correo** (separado por coma). |
+| `ALERT_EXPIRING_FROM` | Remitente; en Gmail debe ser igual a `SMTP_USERNAME`. |
+| `ALERT_EXPIRING_DAYS` | Ventana de días para considerar un contrato "por vencer". |
+| `ALERT_EXPIRING_CRON` | Horario de la ejecución automática. |
+
+> **Gmail**: usa una *app password* (Cuenta de Google → Seguridad → Verificación en 2 pasos → Contraseñas de aplicaciones), no tu contraseña normal, y deja `ALERT_EXPIRING_FROM` igual a `SMTP_USERNAME`.
+>
+> **Desarrollo (sin inbox real)**: Mailtrap captura los correos en su panel — `SMTP_HOST=sandbox.smtp.mailtrap.io`, `SMTP_PORT=2525`, `SMTP_USERNAME=<usuario>`, `SMTP_PASSWORD=<contraseña>`, `SMTP_AUTH=true`, `SMTP_STARTTLS=true`.
+
+### Disparo manual (sin esperar al cron)
+
+El disparo manual usa el endpoint ADMIN `POST /api/v1/automation/expiring-contracts/alert` y **no depende del cron** (funciona aunque `ALERT_EXPIRING_ENABLED=false`). No hay botón en la UI; se hace desde **Swagger** (`/swagger-ui`) o por `curl`:
+
+```bash
+# 1) Login (guarda las cookies HttpOnly en un cookie jar)
+curl -c cookies.txt -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"password"}'
+
+# 2) Disparo manual de la alerta
+curl -b cookies.txt -X POST http://localhost:8080/api/v1/automation/expiring-contracts/alert
+```
+
+Para probar el cron sin esperar al lunes 7:00, cambia a `ALERT_EXPIRING_CRON=0 * * * * *` (cada minuto) y reinicia el backend.
+
+### Verificación
+
+Revisa el resultado en `GET /automation/logs` (página *Automatización*):
+
+- `SUCCESS` → correo(s) enviado(s), o "No hay contratos por vencer…".
+- `SKIPPED` → no hay `ALERT_EXPIRING_RECIPIENTS`.
+- `ERROR` → `SMTP_HOST` vacío o fallo de autenticación/conexión.
+
+> El correo **solo se envía si hay contratos `ACTIVE` que vencen dentro de `ALERT_EXPIRING_DAYS`**. Si no hay ninguno, el log marca `SUCCESS` pero no sale correo; ajusta `ALERT_EXPIRING_DAYS` o carga datos demo (`SEED_DEMO=true`).
 
 ## Seguridad
 
