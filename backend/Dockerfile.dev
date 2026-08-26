@@ -1,0 +1,28 @@
+# =============================================================================
+# Gov Connect — Imagen de DESARROLLO del backend (Spring Boot DevTools)
+# =============================================================================
+# Usado por docker-compose.override.yml para hot reload: el código fuente se
+# monta como bind mount (./backend:/app) y DevTools reinicia la app al detectar
+# cambios en src/. Corre `spring-boot:run` desde el directorio de trabajo del
+# contenedor (/app), que es donde se monta la raíz del módulo backend.
+#
+# ⚠️ Sigue aplicando la regla de CLAUDE.md sobre el CWD: en este contenedor el
+#    CWD es /app y por eso DuckDB/exports se montan en /app/database y /app/exports.
+# =============================================================================
+
+FROM maven:3.9-eclipse-temurin-21
+WORKDIR /app
+
+# curl para el healthcheck (maven:3.9-eclipse-temurin-21 es Debian).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Directorios que la app resuelve de forma relativa al CWD. El bind mount del
+# host (./database/analytics) tomará su lugar en tiempo de ejecución.
+RUN mkdir -p /app/database/analytics /app/exports
+
+# Sin CMD fijo: docker-compose.override.yml lo lanza con `mvn spring-boot:run`
+# (la imagen `maven` ya trae `mvn`). El código llega por bind mount; no se copia
+# aquí para no duplicar capas.
+EXPOSE 8080

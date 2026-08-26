@@ -42,6 +42,15 @@ public class SecurityConfig {
     @Value("${swagger.enabled:true}")
     private boolean swaggerEnabled;
 
+    /**
+     * Orígenes autorizados para CORS, configurables por entorno mediante la
+     * variable {@code CORS_ALLOWED_ORIGINS} (lista separada por comas).
+     * El default cubre el frontend local; en producción debe declararse el
+     * dominio del frontend desplegado.
+     */
+    @Value("${app.cors.allowed-origins}")
+    private List<String> allowedOrigins;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -153,9 +162,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"
-        ));
+        configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         // Encabezados exactos que necesita el frontend — sin wildcard
         configuration.setAllowedHeaders(Arrays.asList(
