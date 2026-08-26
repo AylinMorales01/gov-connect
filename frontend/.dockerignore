@@ -1,0 +1,13 @@
+# El contexto de build es `frontend/`; se excluye todo lo que la imagen no
+# necesita para mantener el contexto pequeño y evitar que el .env local
+# (con VITE_API_URL) se incruste accidentalmente en la imagen.
+
+node_modules
+dist
+.git
+.env
+.env.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log

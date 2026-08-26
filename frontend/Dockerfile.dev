@@ -1,0 +1,18 @@
+# =============================================================================
+# Gov Connect — Imagen de DESARROLLO del frontend (Vite dev server + HMR)
+# =============================================================================
+# Usado por docker-compose.override.yml para hot reload: el código se monta
+# como bind mount (./frontend:/app) y Vite observa los cambios en el host.
+# El `--host 0.0.0.0` es obligatorio para que el dev server sea accesible
+# desde fuera del contenedor.
+# =============================================================================
+
+FROM node:22-alpine
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+EXPOSE 5173
+
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

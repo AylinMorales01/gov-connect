@@ -1,0 +1,59 @@
+# =============================================================================
+# Gov Connect — Override de DESARROLLO (cargado automáticamente por Compose)
+# =============================================================================
+# Cuando ejecutas `docker compose up --build`, Compose fusiona este archivo
+# sobre docker-compose.yml. Aquí se reemplazan backend y frontend por sus
+# variantes de desarrollo con bind mounts y hot reload:
+#
+#   backend   → `./mvnw spring-boot:run` + Spring DevTools (reinicio al guardar)
+#   frontend  → Vite dev server con HMR (http://localhost:5173)
+#
+# Para arrancar SIN hot reload (JAR + nginx), usa:
+#   docker compose -f docker-compose.yml up --build
+# =============================================================================
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    # Bind mount del código fuente: DevTools reinicia la app al guardar.
+    # Se monta el código en /app (CWD del contenedor), por eso DuckDB/exports
+    # se resuelven también desde aquí.
+    volumes:
+      - ./backend:/app
+      # Persistencia compartida con el host: el DuckDB generado por el ETL y
+      # los CSV de exportación quedan en database/analytics/ y exports/ del repo.
+      - ./database/analytics:/app/database/analytics
+      - ./exports:/app/exports
+      # Cache de Maven entre reconstrucciones (evita re-descargar dependencias).
+      - maven-cache:/root/.m2
+    environment:
+      # DevTools activo; el bind mount de /app permite el reinicio automático.
+      SPRING_DEVTOOLS_RESTART_ENABLED: "true"
+    # La imagen `maven` ya trae `mvn`; se evita depender del wrapper (que en el
+    # repo no incluye maven-wrapper.jar).
+    command: mvn spring-boot:run
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./frontend:/app
+      # Evita que el bind mount tape los node_modules instalados en la imagen.
+      - /app/node_modules
+    environment:
+      # En dev Vite lee esta variable en runtime (no se incrusta en build).
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8080/api/v1}
+    command: npm run dev -- --host 0.0.0.0
+    ports:
+      - "${FRONTEND_DEV_PORT:-5173}:5173"
+    # Desactiva el healthcheck de nginx del archivo base (la imagen de dev es
+    # Node, no nginx). Nada depende de la salud del frontend en desarrollo.
+    healthcheck:
+      disable: true
+
+# ── Volumen adicional para la cache de Maven (solo desarrollo) ─────────────
+volumes:
+  maven-cache:

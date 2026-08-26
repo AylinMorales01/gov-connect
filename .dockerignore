@@ -1,0 +1,21 @@
+# El contexto de build es la raíz del repo; se excluye todo lo que la imagen
+# del backend no necesita para evitar contextos de cientos de MB.
+
+.git
+.idea
+.claude
+.env
+cookies.txt
+
+# Frontend (se despliega aparte)
+frontend
+
+# Documentación y datos fuente
+docs
+database
+exports
+
+# Artefactos de build locales
+backend/target
+**/node_modules
+**/*.duckdb
