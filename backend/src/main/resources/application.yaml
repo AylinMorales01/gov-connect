@@ -11,7 +11,9 @@
 # =============================================================================
 
 server:
-  port: ${SERVER_PORT:8080}
+  # PORT es la variable que inyectan las plataformas PaaS (Render, Heroku…) y
+  # tiene prioridad. SERVER_PORT sigue funcionando para desarrollo local.
+  port: ${PORT:${SERVER_PORT:8080}}
 
 spring:
   datasource:
@@ -88,6 +90,14 @@ app:
   # true => cookies marcadas Secure (solo se envían por HTTPS).
   # Debe ser true en producción.
   cookie-secure: ${COOKIE_SECURE:false}
+
+  # ── CORS ───────────────────────────────────────────────
+  # Orígenes autorizados, separados por coma. El default cubre el frontend
+  # local (Vite). En producción hay que declarar el dominio del frontend
+  # desplegado; de lo contrario el navegador bloquea todas las peticiones.
+  # No se admite "*": allowCredentials está activo por las cookies de sesión.
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173}
 
   # ── Alerta de contratos por vencer ─────────────────────
   alert:
