@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Gov Connect** (*Sistema Inteligente de Automatización y Analítica para Entidades Públicas*) is a platform for Colombian public entities. It centralizes financial, budgetary, and contractual indicators into executive dashboards, analytics, and automation. UI copy, docs, and code comments are in **Spanish**.
+**Gov Connect** (*Capa analítica y vigilancia para sistemas financieros públicos*) is a complement layer for Colombian public entities — **not an ERP**. It sits on top of the entity's existing system of record and adds what that system lacks: proactive alerting, reconciliation against external sources (SECOP II), and an executive web dashboard. It deliberately does **not** model the budget execution chain (CDP → RP → payment order), PAC, accounting, regulatory reports (CUIPO, CGN), payroll, treasury, or inventory — see `docs/11-Alcance.md` for the full scope boundary and its rationale. UI copy, docs, and code comments are in **Spanish**.
 
 Monorepo with four independent areas (no root-level build tooling):
 
@@ -70,7 +70,7 @@ Feature-based layout under `frontend/src/`:
 - `api/` — shared axios instance (`baseURL` from `VITE_API_URL`, default `http://localhost:8080/api/v1`) + typed endpoint functions that unwrap `ApiResponse`
 - `hooks/` — React Query wrappers (`useDashboard`, `useMonthlyTrend`, `useDepartmentRanking`, `useExpiringContracts`)
 - `context/` — `AuthContext` (session state, roles, login/logout)
-- `pages/` — route views: `DashboardPage`, `AnalyticsPage`, `ContractsPage`, `AutomationPage`, `LoginPage`, `ForbiddenPage`. Dashboard/Analytics/Contracts are implemented; Automation is minimal (logs).
+- `pages/` — route views: `DashboardPage`, `AnalyticsPage`, `ContractsPage`, `AutomationPage`, `LoginPage`, `ForbiddenPage`. Dashboard/Analytics/Contracts are implemented; Automation shows the execution log and lets ADMIN trigger the expiring-contracts alert.
 - `components/` — `cards/`, `charts/`, `tables/` reusable units
 - `types/`, `utils/` — TS interfaces and formatters (currency, percentage, month)
 

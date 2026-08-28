@@ -1,23 +1,31 @@
 # Gov Connect
 
-**Sistema Inteligente de Automatización y Analítica para Entidades Públicas**
+**Capa analítica y vigilancia para sistemas financieros públicos**
 
 ## Descripción
 
-Gov Connect es una plataforma web para entidades públicas colombianas que centraliza indicadores financieros, presupuestales y contractuales en un **dashboard ejecutivo**, **analítica de datos** y **automatización de procesos**.
+Gov Connect es una **capa de analítica y vigilancia proactiva** que se monta sobre los sistemas financieros que una entidad pública ya tiene en operación.
 
-Resuelve el problema de tener la información dispersa (SECOP, hojas de cálculo, sistemas financieros): unifica contratos, presupuestos y recaudos en un solo lugar, los transforma en indicadores accionables (p. ej. *qué contratos vencen en los próximos 30 días*) y automatiza la notificación de eventos críticos por correo.
+**No es un ERP financiero ni pretende serlo.** No reemplaza ni duplica los módulos de presupuesto, contabilidad, tesorería, nómina, inventario o impuestos de un sistema de registro: consume los datos que esos sistemas producen y responde una pregunta distinta.
 
-Está pensado para directores/as de contratación, secretarías de hacienda/planeación y equipos de control de entidades públicas.
+Un sistema financiero público es excelente registrando y reportando, pero es **reactivo**: espera a que alguien pida el informe. Gov Connect cubre esa brecha con tres capacidades:
+
+- **Vigilancia proactiva** — detecta eventos críticos (contratos por vencer) y notifica por correo sin que nadie tenga que consultarlos.
+- **Conciliación con fuentes externas** — cruza el registro interno contra el export de **SECOP II**, donde las discrepancias son riesgo de auditoría.
+- **Tablero ejecutivo web** — indicadores consolidados en una SPA moderna, para perfiles directivos que no operan el sistema transaccional.
+
+Está pensado para secretarías de hacienda y planeación, direcciones de contratación y equipos de control interno.
+
+> **Frontera explícita**: qué modela este sistema, qué deliberadamente **no** modela (cadena CDP → RP → orden de pago, PAC, reservas, CUIPO, CGN, nómina, tesorería…) y por qué, en **[`docs/11-Alcance.md`](docs/11-Alcance.md)**.
 
 ## Características principales
 
+- **Vigilancia y automatización**: alerta de contratos por vencer enviada por correo (SMTP), con ejecución programada por cron o disparo manual, y registro auditado de cada ejecución en `automation_logs`.
+- **Ingesta y conciliación SECOP II**: importación asíncrona del export real de SECOP II —normalizando sus cabeceras propias mediante `SecopColumnMapper`—, además de presupuestos y recaudos. Validada contra un export real de ~66 000 filas.
 - **Dashboard ejecutivo** (rol `ADMIN`): resumen ejecutivo, recaudos mensuales, contratos por vencer y ejecución presupuestal por dependencia.
 - **Analítica de datos** (DuckDB): tendencia mensual, resumen financiero, ranking de dependencias, recaudos por concepto y medio de pago, contratos por estado, valor contratado por dependencia y top de contratistas.
-- **Gestión de contratos**: catálogo con filtros por estado y búsqueda libre, más resumen agregado.
+- **Catálogo de contratos** (solo consulta): filtros por estado y búsqueda libre, más resumen agregado.
 - **ETL asíncrono**: sincroniza SQL Server → DuckDB (con `taskId` para seguir el avance).
-- **Ingesta de datos desde CSV**: importación asíncrona de contratos (SECOP II), presupuestos y recaudos.
-- **Automatización**: alerta de contratos por vencer enviada por correo (SMTP), con ejecución programada o manual, y registro de ejecuciones en `automation_logs`.
 - **Autenticación JWT** con cookies `HttpOnly`, refresh token rotativo y rate limiting en el login.
 - **Control de acceso por roles** (`ADMIN` / `USER`).
 
@@ -53,9 +61,11 @@ flowchart LR
     EXP -- "ImportService (read_csv_auto)" --> DUCK
 ```
 
-- **SQL Server** es el almacén transaccional/operacional (CRUD, datos diarios). El dashboard consulta **vistas** (`vw_*`), nunca tablas directamente (ADR-003).
+- **SQL Server** es el almacén operacional. El dashboard consulta **vistas** (`vw_*`), nunca tablas directamente (ADR-003).
 - **DuckDB** es el motor analítico embebido (KPIs, tendencias, comparativos). Se alimenta por ETL.
 - Cada módulo (`dashboard`, `analytics`, `contracts`, `ingestion`, `automation`, `auth`, `shared`) es autocontenido con `controller`, `service`, `repository` y `dto`.
+
+> **Origen del dato.** Las tablas de SQL Server son una **proyección** de información que se origina en los sistemas de registro de la entidad (y en fuentes externas como SECOP II), no la fuente de la verdad. Hoy se alimentan por ingesta de CSV para que el sistema sea demostrable de forma autónoma; el destino previsto es que se alimenten del sistema de registro por el mismo ETL. Ver [`docs/11-Alcance.md`](docs/11-Alcance.md) → *Dependencia de datos*.
 
 ## Stack tecnológico
 
@@ -361,7 +371,7 @@ estados. El detalle completo —tabla de alias, estados y reglas de upsert/fallb
 
   **Cómo se dispara:**
   - **Programado (cron):** lunes–viernes a las 7:00 por defecto (`app.alert.expiring-contracts.cron`). Solo corre si `ALERT_EXPIRING_ENABLED=true`; ponerlo en `false` desactiva **únicamente el cron**, no el disparo manual.
-  - **Manual (ADMIN):** `POST /api/v1/automation/expiring-contracts/alert`. No hay botón en la UI (la página *Automatización* solo muestra los logs); se dispara desde **Swagger** (`/swagger-ui`) o por `curl`:
+  - **Manual (ADMIN):** `POST /api/v1/automation/expiring-contracts/alert`. En la UI, la página *Automatización* expone el botón **"Ejecutar alerta de vencimientos"** (solo ADMIN); también se puede disparar desde **Swagger** (`/swagger-ui`) o por `curl`:
     ```bash
     # 1) Login (guarda las cookies HttpOnly en un cookie jar)
     curl -c cookies.txt -X POST http://localhost:8080/api/v1/auth/login \
@@ -423,7 +433,7 @@ Variables clave:
 
 ### Disparo manual (sin esperar al cron)
 
-El disparo manual usa el endpoint ADMIN `POST /api/v1/automation/expiring-contracts/alert` y **no depende del cron** (funciona aunque `ALERT_EXPIRING_ENABLED=false`). No hay botón en la UI; se hace desde **Swagger** (`/swagger-ui`) o por `curl`:
+El disparo manual usa el endpoint ADMIN `POST /api/v1/automation/expiring-contracts/alert` y **no depende del cron** (funciona aunque `ALERT_EXPIRING_ENABLED=false`). En la UI está el botón **"Ejecutar alerta de vencimientos"** en la página *Automatización* (solo ADMIN); también se puede hacer desde **Swagger** (`/swagger-ui`) o por `curl`:
 
 ```bash
 # 1) Login (guarda las cookies HttpOnly en un cookie jar)
@@ -469,8 +479,14 @@ Revisa el resultado en `GET /automation/logs` (página *Automatización*):
 
 ### En desarrollo o pendiente
 
+- **Motor de conciliación SECOP II**: hoy la ingesta normaliza e importa el export; falta el cruce que reporte las diferencias contra el registro interno (publicado y no registrado, registrado y no publicado, valores o fechas que no coinciden).
+- **Lectura desde el sistema de registro**: sustituir la ingesta manual de CSV por una alimentación directa desde el sistema financiero de la entidad (ver [`docs/11-Alcance.md`](docs/11-Alcance.md) → *Dependencia de datos*).
 - **Workflows de orquestación externos tipo n8n**: los endpoints de `automation_logs` están listos para recibir ejecuciones de herramientas externas, pero aún no hay workflows n8n implementados.
-- **Cobertura de datos reales**: la calidad de la ingesta depende del formato del CSV de SECOP II (se normaliza mediante `SecopColumnMapper`); formatos distintos requieren ajustar el mapeo.
+- **Cobertura de datos reales**: la ingesta de contratos está validada contra un export real de SECOP II (~66 000 filas); presupuestos y recaudos siguen corriendo sobre datos semilla. Formatos de export distintos al observado requieren ampliar los alias de `SecopColumnMapper`.
+
+### Fuera de alcance
+
+Este sistema **no** modela la cadena de ejecución presupuestal (CDP, RP, órdenes de pago, PAC, reservas), la contabilidad bajo marco normativo público, los reportes de obligación legal (CUIPO, CGN 001-002, exógena DIAN, FUT, APPUI), tesorería, nómina, inventario, ni el ciclo contractual (actas, liquidación). Esas son responsabilidades de un sistema de registro. El detalle y la justificación de cada exclusión están en **[`docs/11-Alcance.md`](docs/11-Alcance.md)**.
 
 ## Documentación adicional
 
@@ -484,5 +500,5 @@ Revisa el resultado en `GET /automation/logs` (página *Automatización*):
 - `docs/08-DuckDB.md` — Integración con DuckDB y ETL
 - `docs/09-Architecture-Decision-Records.md` — Decisiones de arquitectura (ADRs)
 - `docs/10-Frontend.md` — Arquitectura del frontend
-- `docs/11-Caso-de-Uso-MVP.md` — Caso de uso mínimo cerrado (MVP)
+- `docs/11-Alcance.md` — **Alcance y no-alcance**: qué modela el sistema, qué deliberadamente no, y por qué
 - `CLAUDE.md` — Guía para asistentes de IA que trabajen en el proyecto

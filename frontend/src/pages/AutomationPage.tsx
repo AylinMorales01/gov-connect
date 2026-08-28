@@ -32,11 +32,15 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import ClearIcon from '@mui/icons-material/Clear';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import RemoveCircleOutlinedIcon from '@mui/icons-material/RemoveCircleOutlined';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import { useAutomationLogs } from '../hooks/useAutomationLogs';
+import { useRunExpiringContractsAlert } from '../hooks/useRunExpiringContractsAlert';
+import { useAuth } from '../hooks/useAuth';
 import DashboardCard from '../components/cards/DashboardCard';
-import type { AutomationLogItem } from '../types/dashboard';
+import type { AutomationLogItem, ExpiringContractsAlertResult } from '../types/dashboard';
 
-type StatusFilter = 'ALL' | 'SUCCESS' | 'ERROR';
+type StatusFilter = 'ALL' | 'SUCCESS' | 'ERROR' | 'SKIPPED';
 
 /** Referencia estable para cuando aún no hay datos, evita recrear el array en cada render. */
 const EMPTY_LOGS: AutomationLogItem[] = [];
@@ -73,20 +77,60 @@ function formatTimeAgo(ts: number): string {
     return formatDateTime(ts);
 }
 
-/** Renderiza el chip de estado con ícono y color. */
+/** Estilo (color e ícono) por estado de ejecución. */
+const STATUS_STYLES = {
+    SUCCESS: { color: 'success' as const, Icon: CheckCircleIcon },
+    ERROR: { color: 'error' as const, Icon: ErrorOutlineIcon },
+    SKIPPED: { color: 'default' as const, Icon: RemoveCircleOutlinedIcon },
+};
+
+/**
+ * Renderiza el chip de estado con ícono y color.
+ *
+ * El backend registra tres estados, no dos: además de `SUCCESS` y `ERROR`
+ * escribe `SKIPPED` cuando la ejecución se omite de forma controlada (p. ej.
+ * la alerta sin destinatarios configurados). Colapsar todo lo que no fuera
+ * `SUCCESS` en `ERROR` mostraba una ejecución omitida como fallida.
+ */
 function StatusChip({ status }: { status: string }) {
-    const isSuccess = status === 'SUCCESS';
+    const { color, Icon } = STATUS_STYLES[status as keyof typeof STATUS_STYLES]
+        ?? { color: 'default' as const, Icon: InfoOutlinedIcon };
 
     return (
         <Chip
-            icon={isSuccess ? <CheckCircleIcon /> : <ErrorOutlineIcon />}
-            label={isSuccess ? 'SUCCESS' : 'ERROR'}
-            color={isSuccess ? 'success' : 'error'}
+            icon={<Icon />}
+            label={status}
+            color={color}
             size="small"
             variant="outlined"
             sx={{ fontWeight: 'bold', minWidth: 130 }}
         />
     );
+}
+
+/** Extrae el mensaje de error devuelto por el backend (contrato ApiResponse). */
+function extractErrorMessage(error: unknown): string {
+    if (error && typeof error === 'object' && 'response' in error) {
+        const response = (error as { response?: { data?: { message?: string } } }).response;
+        if (response?.data?.message) {
+            return response.data.message;
+        }
+    }
+    return 'No se pudo ejecutar la alerta. Verifica la conexión con el backend.';
+}
+
+/**
+ * Severidad del panel de resultado de la alerta.
+ *
+ * La petición responde 200 aunque no se envíe ningún correo: el backend degrada
+ * de forma controlada y explica el motivo en el mensaje. Se distingue el caso
+ * legítimo (no había contratos por vencer) del sospechoso (sí los había pero no
+ * salió ningún correo, típicamente SMTP o destinatarios sin configurar).
+ */
+function alertResultSeverity(result: ExpiringContractsAlertResult): 'success' | 'info' | 'warning' {
+    if (result.emailsSent > 0) return 'success';
+    if (result.contractsFound === 0) return 'info';
+    return 'warning';
 }
 
 /** Campo individual del detalle. */
@@ -105,6 +149,12 @@ function DetailField({ label, value }: { label: string; value: string }) {
 
 export default function AutomationPage() {
     const { data, isLoading, isError, isFetching, refetch, dataUpdatedAt } = useAutomationLogs();
+
+    // ── Disparo manual de la alerta de contratos por vencer (solo ADMIN) ──
+    // El backend es la fuente de verdad de la autorización; ocultar el botón
+    // es solo UX para no ofrecer una acción que devolvería 403.
+    const { isAdmin } = useAuth();
+    const expiringAlert = useRunExpiringContractsAlert();
 
     // ── Raw data from API (siempre para las tarjetas resumen) ──
     const allLogs: AutomationLogItem[] = data ?? EMPTY_LOGS;
@@ -156,12 +206,71 @@ export default function AutomationPage() {
 
     return (
         <Box>
-            <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-                Automatizaciones
-            </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+            <Box
+                sx={{
+                    display: 'flex',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    justifyContent: 'space-between',
+                    alignItems: { xs: 'stretch', sm: 'flex-start' },
+                    gap: 2,
+                    mb: 1,
+                }}
+            >
+                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                    Automatizaciones
+                </Typography>
+
+                {isAdmin && (
+                    <Button
+                        variant="contained"
+                        startIcon={
+                            expiringAlert.isPending ? (
+                                <CircularProgress size={16} color="inherit" />
+                            ) : (
+                                <NotificationsActiveIcon />
+                            )
+                        }
+                        onClick={() => expiringAlert.mutate()}
+                        disabled={expiringAlert.isPending}
+                        sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
+                    >
+                        {expiringAlert.isPending ? 'Ejecutando...' : 'Ejecutar alerta de vencimientos'}
+                    </Button>
+                )}
+            </Box>
+
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
                 Historial de ejecuciones de los procesos automatizados.
             </Typography>
+
+            {/* ── Resultado del disparo manual de la alerta ── */}
+            {expiringAlert.isError && (
+                <Alert
+                    severity="error"
+                    onClose={() => expiringAlert.reset()}
+                    sx={{ mb: 3, borderRadius: 2 }}
+                >
+                    {extractErrorMessage(expiringAlert.error)}
+                </Alert>
+            )}
+
+            {expiringAlert.isSuccess && (
+                <Alert
+                    severity={alertResultSeverity(expiringAlert.data)}
+                    onClose={() => expiringAlert.reset()}
+                    sx={{ mb: 3, borderRadius: 2 }}
+                >
+                    {expiringAlert.data.message}
+                    <Typography variant="body2" sx={{ mt: 0.5 }}>
+                        Contratos por vencer encontrados: <strong>{expiringAlert.data.contractsFound}</strong>
+                        {' · '}
+                        Correos enviados: <strong>{expiringAlert.data.emailsSent}</strong>
+                        {expiringAlert.data.recipients.length > 0 && (
+                            <> {' · '}Destinatarios: {expiringAlert.data.recipients.join(', ')}</>
+                        )}
+                    </Typography>
+                </Alert>
+            )}
 
             {/* ── Tarjetas de resumen ── */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -264,6 +373,7 @@ export default function AutomationPage() {
                                 <ToggleButton value="ALL">Todos</ToggleButton>
                                 <ToggleButton value="SUCCESS">SUCCESS</ToggleButton>
                                 <ToggleButton value="ERROR">ERROR</ToggleButton>
+                                <ToggleButton value="SKIPPED">SKIPPED</ToggleButton>
                             </ToggleButtonGroup>
 
                             {hasActiveFilters && (

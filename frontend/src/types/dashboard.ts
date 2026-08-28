@@ -28,3 +28,11 @@ export interface AutomationLogItem {
     executionTimeMs: number | null;
     createdAt: string;
 }
+
+/** Resultado de una ejecución manual de la alerta de contratos por vencer. */
+export interface ExpiringContractsAlertResult {
+    contractsFound: number;
+    emailsSent: number;
+    recipients: string[];
+    message: string;
+}
