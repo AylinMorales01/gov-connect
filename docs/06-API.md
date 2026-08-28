@@ -60,8 +60,9 @@ La alerta de contratos por vencer (G3) se dispara de dos formas:
 - **Programada (cron):** `app.alert.expiring-contracts.cron` (por defecto lunes–viernes
   7:00). Solo corre si `app.alert.expiring-contracts.enabled=true`; con `false` se
   desactiva **únicamente el cron**, no el disparo manual.
-- **Manual (ADMIN):** `POST /automation/expiring-contracts/alert`. No hay botón en la
-  UI; se dispara desde Swagger o por `curl` (ver la sección *Automatización* del README).
+- **Manual (ADMIN):** `POST /automation/expiring-contracts/alert`. En la UI, la página
+  *Automatización* ofrece el botón **"Ejecutar alerta de vencimientos"** (solo ADMIN);
+  también se dispara desde Swagger o por `curl` (ver la sección *Automatización* del README).
 
 Detecta los contratos `ACTIVE` que vencen en los próximos `days` días y envía un correo
 HTML a `recipients`. Cada ejecución queda en `automation_logs` con estado según el caso:

@@ -14,7 +14,7 @@
 
 ## Caso de uso MVP cerrado
 
-Ver `11-Caso-de-Uso-MVP.md`. Los gaps de la Fase 1 y 2 están cerrados:
+Los gaps de la Fase 1 y 2 están cerrados:
 
 1. **Fase 1** — Ingesta de contratos desde CSV SECOP (gap G1) y flujo
    "contratos por vencer" con dato real (G2).
